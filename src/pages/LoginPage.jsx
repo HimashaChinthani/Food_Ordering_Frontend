@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 import "./LoginPage.css";
 
 const LoginPage = ({ onSwitchToRegister }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -23,10 +25,11 @@ const LoginPage = ({ onSwitchToRegister }) => {
 
       const user = await response.json();
       console.log("Logged in user:", user);
-      alert(`Login successful! Welcome ${user.name}`);
-
       // Optional: save user to localStorage
       localStorage.setItem("user", JSON.stringify(user));
+
+      // Navigate to home page after successful login
+      navigate('/home');
 
     } catch (error) {
       console.error(error);

@@ -1,0 +1,3 @@
+.category-filter{display:flex;gap:10px;flex-wrap:wrap}
+.cat-btn{padding:8px 12px;border-radius:999px;border:1px solid rgba(0,0,0,0.06);background:#fff;cursor:pointer;font-weight:600}
+.cat-btn.active{background:linear-gradient(90deg,#ff6b35,#ff8a4d);color:#fff;border-color:transparent;box-shadow:0 8px 24px rgba(255,107,53,0.08)}
