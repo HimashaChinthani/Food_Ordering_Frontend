@@ -8,7 +8,10 @@ const MainLanding = () => {
       <section className="hero-wrap">
         <div className="hero-inner">
           <div className="hero-copy">
-            <h1>Delivering Delight — One Meal at a Time</h1>
+            <h1>
+              Delivering <span className="accent">Delight</span>
+              <span className="sub">— One Meal at a Time</span>
+            </h1>
             <p className="lead">Discover local favorites, order in seconds, and enjoy food delivered hot to your door.</p>
 
             <div className="cta-row">
@@ -23,52 +26,61 @@ const MainLanding = () => {
             </div>
 
             <div className="hero-links">
-              <Link to="/about">About</Link>
-              <Link to="/service">Services</Link>
-              <Link to="/contact">Contact</Link>
+              <a href="#features">Features</a>
+              <a href="#testimonials">Testimonials</a>
+              <a href="#footer">Contact</a>
             </div>
           </div>
 
           <div className="hero-media" aria-hidden>
-            <img src="https://source.unsplash.com/900x700/?gourmet,food,plated" alt="Hero food" />
+            <div className="media-frame">
+              <img src="https://source.unsplash.com/900x700/?gourmet,food,plated" alt="Hero food" />
+              <div className="play-badge">🍽️</div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="features" aria-label="features">
+      <section id="features" className="features" aria-label="features">
         <div className="feature">
+          <div className="icon">🚚</div>
           <h4>Fast Delivery</h4>
           <p>Optimized routes and trusted couriers bring your meals quickly.</p>
         </div>
         <div className="feature">
+          <div className="icon">🍕</div>
           <h4>Top Restaurants</h4>
           <p>Hand-picked local kitchens and popular chains in one place.</p>
         </div>
         <div className="feature">
+          <div className="icon">🔒</div>
           <h4>Easy Payments</h4>
           <p>Secure checkout with multiple payment methods and receipts.</p>
         </div>
       </section>
 
-      <section className="testimonials">
+      <section id="testimonials" className="testimonials">
         <h3>What our customers say</h3>
         <div className="test-grid">
           <div className="test-card">
+            <div className="stars">★ ★ ★ ★ ☆</div>
             <p>"Great food and super quick delivery — my go-to app for dinner."</p>
             <div className="auth">— Maya R.</div>
           </div>
           <div className="test-card">
+            <div className="stars">★ ★ ★ ★ ★</div>
             <p>"The selection of restaurants is amazing and payment is seamless."</p>
             <div className="auth">— Carlos M.</div>
           </div>
           <div className="test-card">
+            <div className="stars">★ ★ ★ ★ ☆</div>
             <p>"I love the offers and the orders always arrive hot."</p>
             <div className="auth">— Leila A.</div>
           </div>
         </div>
       </section>
 
-      <section className="landing-footer">
+      <section id="footer" className="landing-footer">
         <div className="footer-grid">
           <div>
             <h4>FoodieHub</h4>
