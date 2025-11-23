@@ -15,6 +15,7 @@ import Contact from './pages/Contact';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Simple auth guard that checks for a `user` in localStorage
 const RequireAuth = ({ children }) => {
@@ -24,6 +25,18 @@ const RequireAuth = ({ children }) => {
     if (!user) return <Navigate to="/" replace />;
   } catch (e) {
     return <Navigate to="/" replace />;
+  }
+  return children;
+};
+
+const RequireAdmin = ({ children }) => {
+  try {
+    const raw = localStorage.getItem('user');
+    const user = raw ? JSON.parse(raw) : null;
+    const role = user && user.role ? String(user.role).toLowerCase() : null;
+    if (!user || role !== 'admin') return <Navigate to="/login" replace />;
+  } catch (e) {
+    return <Navigate to="/login" replace />;
   }
   return children;
 };
@@ -62,6 +75,9 @@ function InnerApp() {
           <Route path="/vision" element={<Vision />} />
           <Route path="/service" element={<Service />} />
           <Route path="/contact" element={<Contact />} />
+
+          {/* Admin route */}
+          <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
 
           {/* Protected routes: require login */}
           <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />

@@ -28,8 +28,10 @@ const LoginPage = ({ onSwitchToRegister }) => {
       // Optional: save user to localStorage
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Navigate to home page after successful login
-      navigate('/home');
+      // Redirect based on role (case-insensitive)
+      const role = user && user.role ? String(user.role).toLowerCase() : 'user';
+      if (role === 'admin') navigate('/admin');
+      else navigate('/home');
 
     } catch (error) {
       console.error(error);

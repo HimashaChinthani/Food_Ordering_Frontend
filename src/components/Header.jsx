@@ -8,6 +8,7 @@ const Header = () => {
 	const count = items.reduce((s, it) => s + (it.qty || 1), 0);
 	const [user, setUser] = useState(null);
 	const [open, setOpen] = useState(false);
+	const isAdmin = user && user.role && String(user.role).toLowerCase() === 'admin';
 	const nav = useNavigate();
 	const ref = useRef();
 
@@ -41,9 +42,20 @@ const Header = () => {
 				<Link to="/home" className="brand">Foodie<span>Hub</span></Link>
 				<nav className="main-nav">
 					<div className="nav-links">
-						<Link to="/home">Home</Link>
-						<Link to="/menu">Menu</Link>
-						<Link to="/cart" className="cart-link">Cart{count>0 && <span className="badge">{count}</span>}</Link>
+						{isAdmin ? (
+							<>
+								<Link to="/admin">Dashboard</Link>
+								<Link to="/admin/users">Users</Link>
+								<Link to="/admin/orders">Orders</Link>
+								<Link to="/admin/menu">Menu</Link>
+							</>
+						) : (
+							<>
+								<Link to="/home">Home</Link>
+								<Link to="/menu">Menu</Link>
+								<Link to="/cart" className="cart-link">Cart{count>0 && <span className="badge">{count}</span>}</Link>
+							</>
+						)}
 					</div>
 
 					{!user ? (
