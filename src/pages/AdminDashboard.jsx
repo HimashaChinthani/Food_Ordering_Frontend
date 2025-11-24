@@ -40,7 +40,15 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error("Failed to fetch");
       const json = await res.json();
 
-      setItems(Array.isArray(json) ? json : []);
+      // normalize id field so frontend always has `id`
+      const normalized = Array.isArray(json)
+        ? json.map((p) => ({
+            ...p,
+            id: p.id ?? p._id ?? p.menuid ?? p.menuId ?? null,
+          }))
+        : [];
+
+      setItems(normalized);
     } catch (err) {
       setError("Failed to load items");
       console.log(err);
@@ -75,6 +83,13 @@ export default function AdminDashboard() {
       price: Number(form.price),
       image: img,
     };
+
+    // include common alternate id keys the backend might expect
+    if (form.id) {
+      payload._id = form.id;
+      payload.menuid = form.id;
+      payload.menuId = form.id;
+    }
 
     const method = form.id ? "PUT" : "POST";
     const url = form.id ? `${API}/updatemenu` : `${API}/addmenu`;
