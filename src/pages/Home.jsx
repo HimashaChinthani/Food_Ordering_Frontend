@@ -1,13 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Home.css';
-import SAMPLE from '../data/sampleProducts';
 import MenuCard from '../components/MenuCard';
 import { useCart } from '../context/CartContext';
 
+const API = 'http://localhost:8081/api/v2';
+
 const Home = () => {
-  const featured = SAMPLE.slice(0, 4);
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const { add } = useCart();
+
+  // Fetch menu items from backend
+  useEffect(() => {
+    const fetchMenu = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API}/getmenu`);
+        if (!res.ok) throw new Error('Failed to fetch menu');
+        const data = await res.json();
+        setMenuItems(data);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to load menu items');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMenu();
+  }, []);
+
+  const featured = menuItems.slice(0, 4); // first 4 items as featured
+
+  const displayImage = (img) => {
+    if (!img) return null;
+    if (img.startsWith('data:')) return img;
+    return `data:image/png;base64,${img}`;
+  };
 
   return (
     <main className="home-main">
@@ -18,7 +50,7 @@ const Home = () => {
             <p className="hero-sub">Discover local favorites and new dishes — ready to order and delivered to your door.</p>
             <div className="hero-ctas">
               <Link to="/menu" className="btn primary">Explore Menu</Link>
-              <Link to="/menu" className="btn ghost" style={{marginLeft:12}}>Order Now</Link>
+              <Link to="/menu" className="btn ghost" style={{ marginLeft: 12 }}>Order Now</Link>
             </div>
 
             <div className="category-chips">
@@ -39,11 +71,23 @@ const Home = () => {
       <div className="container">
         <section className="featured">
           <h2>Featured dishes</h2>
-          <div className="featured-grid">
-            {featured.map(item => (
-              <MenuCard key={item.id} item={item} onAdd={() => add(item)} />
-            ))}
-          </div>
+          {loading ? (
+            <p>Loading...</p>
+          ) : error ? (
+            <p>{error}</p>
+          ) : featured.length === 0 ? (
+            <p>No featured dishes available.</p>
+          ) : (
+            <div className="featured-grid">
+              {featured.map(item => (
+                <MenuCard
+                  key={item.id}
+                  item={{ ...item, image: displayImage(item.image) }}
+                  onAdd={() => add(item)}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="features-grid">

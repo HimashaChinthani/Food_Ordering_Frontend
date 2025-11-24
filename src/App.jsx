@@ -16,6 +16,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminUsers from './pages/AdminUsers';
 
 // Simple auth guard that checks for a `user` in localStorage
 const RequireAuth = ({ children }) => {
@@ -78,6 +79,7 @@ function InnerApp() {
 
           {/* Admin route */}
           <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
+          <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
 
           {/* Protected routes: require login */}
           <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
