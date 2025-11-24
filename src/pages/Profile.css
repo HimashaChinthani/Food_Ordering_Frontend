@@ -1,0 +1,20 @@
+.profile-root{max-width:980px;margin:28px auto;padding:18px}
+.profile-card{background:#fff;padding:22px;border-radius:12px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 12px 40px rgba(17,48,63,0.04)}
+.profile-media{display:flex;gap:18px;align-items:center}
+.avatar-large{width:96px;height:96px;border-radius:16px;overflow:hidden;background:#f7f7f7;display:flex;align-items:center;justify-content:center;font-weight:800;color:#11303f;border:1px solid rgba(17,48,63,0.06)}
+.avatar-large img{width:100%;height:100%;object-fit:cover}
+.meta h2{margin:0 0 6px;color:#11303f}
+.meta .role-badge{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;margin-top:6px}
+.meta .email{color:#556;margin-top:6px}
+
+.profile-form{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.profile-form label{grid-column:span 2;color:#667;font-size:0.85rem}
+.profile-form input{grid-column:span 2;padding:10px;border-radius:8px;border:1px solid rgba(17,48,63,0.06)}
+.profile-form .form-actions{grid-column:span 2;display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+
+.danger-zone{margin-top:18px;padding:12px;border-top:1px solid rgba(0,0,0,0.04)}
+.danger-zone h4{margin:0 0 6px}
+
+@media (max-width:800px){
+  .profile-form{grid-template-columns:1fr}
+}

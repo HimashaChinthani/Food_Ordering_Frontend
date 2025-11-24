@@ -47,7 +47,6 @@ const Header = () => {
 								<Link to="/admin">Dashboard</Link>
 								<Link to="/admin/users">Users</Link>
 								<Link to="/admin/orders">Orders</Link>
-								<Link to="/admin/menu">Menu</Link>
 							</>
 						) : (
 							<>
