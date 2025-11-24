@@ -99,10 +99,15 @@ export default function AdminDashboard() {
 
   // Delete item
   const handleDelete = async (id) => {
+    if (!id) {
+      alert("Item id not found. Cannot delete.");
+      return;
+    }
+
     if (!window.confirm("Delete this item?")) return;
 
     try {
-      const res = await fetch(`${API}/deletmenu/${menuid}`, { method: "DELETE" });
+      const res = await fetch(`${API}/deletmenu/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
       await loadItems();
     } catch (err) {
@@ -117,6 +122,9 @@ export default function AdminDashboard() {
     if (img.startsWith("data:")) return img;
     return `data:image/png;base64,${img}`;
   };
+
+  // helper to get the item's id from different possible keys
+  const getItemId = (p) => p?.id ?? p?._id ?? p?.menuid ?? p?.menuId ?? null;
 
   return (
     <div className="admin-root">
@@ -152,7 +160,7 @@ export default function AdminDashboard() {
 
         <div className="items-grid">
           {items.map((p) => (
-            <div className="item-card" key={p.id}>
+            <div className="item-card" key={getItemId(p) || p.name}>
               {p.image ? (
                 <img src={displayImage(p.image)} alt="menu" />
               ) : (
@@ -171,6 +179,7 @@ export default function AdminDashboard() {
                   onClick={() => {
                     setForm({
                       ...p,
+                      id: getItemId(p),
                       image: p.image ? displayImage(p.image) : null,
                     });
                     setShowForm(true);
@@ -181,7 +190,7 @@ export default function AdminDashboard() {
 
                 <button
                   className="btn danger small"
-                  onClick={() => handleDelete(p.id)}
+                  onClick={() => handleDelete(getItemId(p))}
                 >
                   Delete
                 </button>
