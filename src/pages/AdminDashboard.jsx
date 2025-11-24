@@ -1,206 +1,270 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import './AdminDashboard.css';
-import SAMPLE from '../data/sampleProducts';
+// AdminDashboard.jsx
+import React, { useEffect, useState, useMemo } from "react";
+import "./AdminDashboard.css";
 
-const STORAGE_KEY = 'products';
-
-// Load products from backend OR local sample
-function loadProducts() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return SAMPLE.slice();
-    return JSON.parse(raw);
-  } catch (e) {
-    return SAMPLE.slice();
-  }
-}
-
-// Save to localStorage
-function saveProducts(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
+const API = "http://localhost:8081/api/v2";
 
 export default function AdminDashboard() {
-  const [products, setProducts] = useState(() => loadProducts());
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({});
-  const [members] = useState(1284); // demo
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => saveProducts(products), [products]);
+  // Form State
+  const [form, setForm] = useState({
+    id: null,
+    name: "",
+    category: "PIZZA",
+    price: "",
+    description: "",
+    image: null,
+  });
 
+  // Calculate revenue
   const revenue = useMemo(
-    () => products.reduce((s, p) => s + ((p.price || 0) * (p.sold || 0)), 0),
-    [products]
+    () =>
+      items.reduce(
+        (s, p) => s + (Number(p.price || 0) * Number(p.sold || 0)),
+        0
+      ),
+    [items]
   );
 
-  // Backend Add / Edit Menu Item
+  // Load all menu items
+  const loadItems = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API}/getmenu`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const json = await res.json();
+
+      setItems(Array.isArray(json) ? json : []);
+    } catch (err) {
+      setError("Failed to load items");
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadItems();
+  }, []);
+
+  // Save (Add or Update)
   const handleSave = async (e) => {
     e.preventDefault();
 
-    // Convert dataURL to Base64 without prefix
-    let imageBase64 = form.image || null;
-    if (imageBase64 && imageBase64.includes(',')) {
-      imageBase64 = imageBase64.split(',')[1];
+    if (!form.name || !form.price) {
+      alert("Name & Price required");
+      return;
     }
 
-    const menuItem = {
-      id: form.id || null,
+    let img = form.image;
+    if (img?.startsWith("data:")) {
+      img = img.split(",")[1]; // convert to pure base64
+    }
+
+    const payload = {
+      id: form.id,
       name: form.name,
       category: form.category,
       description: form.description,
       price: Number(form.price),
-      image: imageBase64, // proper base64 string for LONGBLOB
-      sold: form.sold || 0,
-      available: true, // always available
+      image: img,
     };
 
+    const method = form.id ? "PUT" : "POST";
+    const url = form.id ? `${API}/updatemenu` : `${API}/addmenu`;
+
     try {
-      const response = await fetch("http://localhost:8081/api/v2/addmenu", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(menuItem),
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error("Failed to save menu item");
-
-      const saved = await response.json();
-
-      if (form.id) {
-        setProducts(prev => prev.map(p => p.id === form.id ? saved : p));
-      } else {
-        setProducts(prev => [saved, ...prev]);
-      }
-
-      alert("Menu item saved successfully!");
+      if (!res.ok) throw new Error("Save failed");
+      await loadItems();
+      alert("Saved successfully!");
+      setShowForm(false);
       setForm({});
-      setShowAdd(false);
     } catch (err) {
-      console.error("Error saving menu item:", err);
-      alert("Error saving menu item");
+      alert("Save failed");
+      console.log(err);
     }
   };
 
-  const handleDelete = (id) => {
-    if (!confirm('Delete this item?')) return;
-    setProducts(prev => prev.filter(p => p.id !== id));
+  // Delete item
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this item?")) return;
+
+    try {
+      const res = await fetch(`${API}/deletmenu/${menuid}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      await loadItems();
+    } catch (err) {
+      alert("Delete failed");
+      console.log(err);
+    }
+  };
+
+  // Convert image to renderable
+  const displayImage = (img) => {
+    if (!img) return null;
+    if (img.startsWith("data:")) return img;
+    return `data:image/png;base64,${img}`;
   };
 
   return (
     <div className="admin-root">
       <header className="admin-hero">
-        <div>
-          <h2>Admin Dashboard</h2>
-          <p className="muted">Manage members, revenue and menu items</p>
-        </div>
+        <h2>Admin Dashboard</h2>
 
         <div className="admin-stats">
-          <div className="stat"><div className="value">{members}</div><div className="label">Members</div></div>
-          <div className="stat"><div className="value">${revenue.toFixed(2)}</div><div className="label">Revenue</div></div>
-          <div className="stat"><div className="value">{products.length}</div><div className="label">Menu Items</div></div>
+          <div className="stat">
+            <div className="value">{items.length}</div>
+            <div className="label">Menu Items</div>
+          </div>
+          <div className="stat">
+            <div className="value">${revenue.toFixed(2)}</div>
+            <div className="label">Revenue</div>
+          </div>
         </div>
 
-        <div className="actions">
-          <button className="btn primary" onClick={() => { setForm({}); setShowAdd(true); }}>Add Menu Item</button>
-        </div>
+        <button
+          className="btn primary"
+          onClick={() => {
+            setForm({ id: null });
+            setShowForm(true);
+          }}
+        >
+          Add Item
+        </button>
       </header>
 
       <section className="admin-list">
-        <h3>Menu Items</h3>
+        {loading && <p>Loading...</p>}
+        {error && <p className="error">{error}</p>}
+        {!loading && items.length === 0 && <p>No items found.</p>}
+
         <div className="items-grid">
-          {products.map(p => (
+          {items.map((p) => (
             <div className="item-card" key={p.id}>
-              {p.image && <img src={`data:image/png;base64,${p.image}`} alt={p.name} />}
-              <div className="item-body">
-                <div className="title-row">
-                  <strong>{p.name}</strong>
-                  <span className="price">${(p.price || 0).toFixed(2)}</span>
-                </div>
+              {p.image ? (
+                <img src={displayImage(p.image)} alt="menu" />
+              ) : (
+                <div className="no-img">No Image</div>
+              )}
 
-                <div className="desc">{p.description}</div>
-                <div className="meta">{p.category} · Sold: {p.sold || 0}</div>
+              <h4>{p.name}</h4>
+              <p>{p.description}</p>
+              <p>
+                <b>${p.price}</b> | {p.category}
+              </p>
 
-                <div className="card-actions">
-                  <button className="btn small" onClick={() => { setForm(p); setShowAdd(true); }}>Edit</button>
-                  <button className="btn danger small" onClick={() => handleDelete(p.id)}>Delete</button>
-                </div>
+              <div className="card-actions">
+                <button
+                  className="btn small"
+                  onClick={() => {
+                    setForm({
+                      ...p,
+                      image: p.image ? displayImage(p.image) : null,
+                    });
+                    setShowForm(true);
+                  }}
+                >
+                  Edit
+                </button>
+
+                <button
+                  className="btn danger small"
+                  onClick={() => handleDelete(p.id)}
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {showAdd && (
+      {showForm && (
         <div className="modal-overlay">
           <div className="modal">
-            <h4>{form.id ? 'Edit Menu Item' : 'Add Menu Item'}</h4>
+            <h3>{form.id ? "Edit Item" : "Add Item"}</h3>
 
-            <form className="admin-form" onSubmit={handleSave}>
+            <form onSubmit={handleSave}>
               <input
+                type="text"
                 placeholder="Name"
-                value={form.name || ''}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                value={form.name || ""}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
               />
 
-              {/* Category Dropdown */}
               <select
-                value={form.category || 'PIZZA'}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                required
+                value={form.category || "PIZZA"}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
                 <option value="PIZZA">Pizza</option>
                 <option value="BURGER">Burger</option>
                 <option value="DRINKS">Drinks</option>
-                <option value="DESSERT">Dessert</option>
                 <option value="SNACKS">Snacks</option>
+                <option value="DESSERT">Dessert</option>
               </select>
 
               <input
-                placeholder="Price"
                 type="number"
-                step="0.01"
-                value={form.price || ''}
-                onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                placeholder="Price"
+                value={form.price || ""}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
                 required
               />
 
-              <label className="small">Image</label>
               <input
                 type="file"
                 accept="image/*"
-                onChange={(ev) => {
-                  const file = ev.target.files?.[0];
+                onChange={(e) => {
+                  const file = e.target.files[0];
                   if (!file) return;
-
                   const reader = new FileReader();
-                  reader.onload = (event) =>
-                    setForm(prev => ({ ...prev, image: event.target.result }));
+                  reader.onload = (evt) =>
+                    setForm({ ...form, image: evt.target.result });
                   reader.readAsDataURL(file);
                 }}
-                required={!form.image}
               />
 
               {form.image && (
                 <img
                   src={form.image}
                   alt="preview"
-                  style={{ maxWidth: 160, borderRadius: 8, marginTop: 8 }}
+                  style={{ width: 120, marginTop: 10 }}
                 />
               )}
 
               <textarea
                 placeholder="Description"
-                value={form.description || ''}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                value={form.description || ""}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
               />
 
               <div className="modal-actions">
-                <button type="button" className="btn outline" onClick={() => { setShowAdd(false); setForm({}); }}>
+                <button
+                  type="button"
+                  className="btn outline"
+                  onClick={() => setShowForm(false)}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn primary">Save</button>
+
+                <button className="btn primary" type="submit">
+                  Save
+                </button>
               </div>
             </form>
           </div>
