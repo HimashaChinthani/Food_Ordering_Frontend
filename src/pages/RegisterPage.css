@@ -5,7 +5,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #ff7e3a; /* solid orange full-page */
+  background: var(--bg);
   background-image: none;
   font-family: 'Inter', 'Arial', sans-serif;
   padding: 2rem;
@@ -14,7 +14,7 @@
 .login-box {
   width: 720px;
   max-width: 100%;
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 16px;
   box-shadow: 0 12px 30px rgba(18, 18, 18, 0.12);
   overflow: hidden;
@@ -41,7 +41,7 @@ html, body {
 }
 
 .login-form h2 {
-  color: #ff4b2b;
+  color: var(--accent);
   font-size: 1.8rem;
   text-align: center;
   margin: 0 0 8px 0;
@@ -69,15 +69,15 @@ html, body {
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid transparent;
-  background: #fff6f2;
-  color: #ff5a3c;
+  background: rgba(255,255,255,0.02);
+  color: var(--accent);
   font-weight: 600;
   cursor: pointer;
 }
 
 .role-selection input[type="radio"] {
   transform: scale(1.1);
-  accent-color: #ff5a3c;
+  accent-color: var(--accent);
 }
 
 .login-form form {
@@ -93,19 +93,19 @@ html, body {
   border: 1px solid #e6e6e6;
   border-radius: 10px;
   font-size: 1rem;
-  background: #fff;
+  background: var(--surface);
   box-shadow: inset 0 1px 0 rgba(0,0,0,0.02);
 }
 
 .login-form input:focus {
   outline: none;
-  border-color: rgba(255,75,43,0.9);
-  box-shadow: 0 6px 18px rgba(255,75,43,0.06);
+  border-color: rgba(124,58,237,0.9);
+  box-shadow: 0 6px 18px rgba(124,58,237,0.06);
 }
 
 .login-form button {
   padding: 12px 16px;
-  background: linear-gradient(90deg,#ff6a45,#ff4122);
+  background: linear-gradient(90deg,var(--accent),var(--accent-2));
   border: none;
   color: white;
   font-size: 1rem;
@@ -117,7 +117,7 @@ html, body {
 
 .login-form button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(255,65,34,0.14);
+  box-shadow: 0 10px 30px rgba(124,58,237,0.14);
 }
 
 .login-form p {
@@ -128,7 +128,7 @@ html, body {
 }
 
 .login-form p span {
-  color: #ff4b2b;
+  color: var(--accent);
   font-weight: 700;
   cursor: pointer;
 }

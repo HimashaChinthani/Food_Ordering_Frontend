@@ -217,64 +217,92 @@ export default function AdminDashboard() {
 
       {showForm && (
         <div className="modal-overlay">
-          <div className="modal">
-            <h3>{form.id ? "Edit Item" : "Add Item"}</h3>
-
-            <form onSubmit={handleSave}>
-              <input
-                type="text"
-                placeholder="Name"
-                value={form.name || ""}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
-
-              <select
-                value={form.category || "PIZZA"}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+          <div className="modal modal-card">
+            <div className="modal-header">
+              <h3>{form.id ? "Edit Item" : "Add Item"}</h3>
+              <button
+                type="button"
+                className="close-btn"
+                onClick={() => setShowForm(false)}
+                aria-label="Close form"
               >
-                <option value="PIZZA">Pizza</option>
-                <option value="BURGER">Burger</option>
-                <option value="DRINKS">Drinks</option>
-                <option value="SNACKS">Snacks</option>
-                <option value="DESSERT">Dessert</option>
-              </select>
+                ✕
+              </button>
+            </div>
 
-              <input
-                type="number"
-                placeholder="Price"
-                value={form.price || ""}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-                required
-              />
+            <form onSubmit={handleSave} className="admin-form">
+              <div className="form-grid">
+                <div className="col">
+                  <label className="label">Name</label>
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={form.name || ""}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                    className="input"
+                  />
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (evt) =>
-                    setForm({ ...form, image: evt.target.result });
-                  reader.readAsDataURL(file);
-                }}
-              />
+                  <label className="label">Category</label>
+                  <select
+                    value={form.category || "PIZZA"}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="select"
+                  >
+                    <option value="PIZZA">Pizza</option>
+                    <option value="BURGER">Burger</option>
+                    <option value="DRINKS">Drinks</option>
+                    <option value="SNACKS">Snacks</option>
+                    <option value="DESSERT">Dessert</option>
+                  </select>
 
-              {form.image && (
-                <img
-                  src={form.image}
-                  alt="preview"
-                  style={{ width: 120, marginTop: 10 }}
-                />
-              )}
+                  <label className="label">Price</label>
+                  <input
+                    type="number"
+                    placeholder="Price"
+                    value={form.price || ""}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    required
+                    className="input"
+                  />
+                </div>
 
+                <div className="col">
+                  <label className="label">Image</label>
+                  <div className="file-drop">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (evt) =>
+                          setForm({ ...form, image: evt.target.result });
+                        reader.readAsDataURL(file);
+                      }}
+                      className="file-input"
+                    />
+
+                    <div className="img-preview">
+                      {form.image ? (
+                        <img src={form.image} alt="preview" />
+                      ) : (
+                        <div className="no-img">No image selected</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <label className="label">Description</label>
               <textarea
                 placeholder="Description"
                 value={form.description || ""}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
+                className="textarea"
               />
 
               <div className="modal-actions">

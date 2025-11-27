@@ -2,7 +2,7 @@
 .container{max-width:1100px;margin:0 auto}
 .empty{color:#666}
 .cart-list{display:flex;flex-direction:column;gap:12px}
-.row{display:flex;align-items:center;gap:12px;background:#fff;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.04)}
+.row{display:flex;align-items:center;gap:12px;background:var(--surface);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04)}
 .row img{width:84px;height:64px;object-fit:cover;border-radius:8px}
 .meta{flex:1}
 .controls button{width:28px;height:28px;border-radius:6px}
@@ -10,5 +10,5 @@
 .price{font-weight:700}
 .summary{display:flex;justify-content:space-between;padding:12px;font-weight:800}
 .actions{display:flex;gap:10px}
-.checkout{background:linear-gradient(90deg,#ff6b35,#ff8a4d);color:#fff;padding:10px 14px;border-radius:10px;border:none}
+.checkout{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;padding:10px 14px;border-radius:10px;border:none}
 .clear{background:transparent;border:1px solid rgba(0,0,0,0.06);padding:10px 14px;border-radius:10px}

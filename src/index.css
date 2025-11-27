@@ -3,9 +3,15 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: #213547;
-  background-color: #faf9f7;
+  /* Prefer dark theme by default */
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #0b0b0b;
+  --muted: #bfc7cd;
+  --accent: #7c3aed;
+  --accent-2: #6d28d9;
+  --text: #ffffff;
+  color: var(--text);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,19 +21,19 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--accent);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--accent-2);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--bg, #faf9f7);
-  color: #213547;
+  background: var(--bg, #000);
+  color: var(--text, #ffffff);
   font-family: inherit;
 }
 
@@ -47,27 +53,19 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--surface);
+  color: #fff;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, transform 0.12s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: rgba(255,255,255,0.06);
+  transform: translateY(-1px);
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+/* Keep dark theme globally. If you want automatic switching, adjust here. */
+

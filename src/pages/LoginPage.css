@@ -4,7 +4,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(120deg, #ffe29f, #ff7e5f);
+  background: linear-gradient(120deg, var(--surface), #060606);
   font-family: 'Arial', sans-serif;
 }
 
@@ -26,7 +26,7 @@ html, body {
   display: flex;
   width: 95%;
   max-width: 1100px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 8px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.08);
   min-height: 72vh;
@@ -83,7 +83,7 @@ html, body {
 }
 
 .login-form h2 {
-  color: #ff4b2b;
+  color: var(--accent);
   font-size: 2em;
   text-align: center;
   margin-bottom: 30px;
@@ -97,25 +97,27 @@ html, body {
 .login-form input {
   padding: 12px 15px;
   margin-bottom: 20px;
-  border: 1px solid #ccc;
+  border: 1px solid rgba(255,255,255,0.04);
   border-radius: 10px;
   font-size: 1em;
+  background: var(--surface);
+  color: var(--text);
 }
 
 .login-form button {
   padding: 12px;
-  background: #ff4b2b;
+  background: linear-gradient(90deg,var(--accent),var(--accent-2));
   border: none;
   color: white;
   font-size: 1em;
   font-weight: bold;
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.3s, transform 0.12s;
 }
 
 .login-form button:hover {
-  background: #ff3a1a;
+  transform: translateY(-2px);
 }
 
 .login-form p {
@@ -125,7 +127,7 @@ html, body {
 }
 
 .login-form p span {
-  color: #ff4b2b;
+  color: var(--accent);
   font-weight: bold;
   cursor: pointer;
 }

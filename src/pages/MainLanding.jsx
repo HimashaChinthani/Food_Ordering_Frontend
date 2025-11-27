@@ -8,34 +8,43 @@ const MainLanding = () => {
       <section className="hero-wrap">
         <div className="hero-inner">
           <div className="hero-copy">
-            <h1>
-              Delivering <span className="accent">Delight</span>
-              <span className="sub">— One Meal at a Time</span>
-            </h1>
-            <p className="lead">Discover local favorites, order in seconds, and enjoy food delivered hot to your door.</p>
+            <div className="hero-panel" role="region" aria-label="Main call to action">
+              <div className="badge">Most loved</div>
+              <h1>
+                Fresh meals delivered
+                <span className="accent"> fast</span>
+              </h1>
+              <div className="sub">Taste the difference — explore local favorites</div>
+              <p className="lead">Filter by cuisine, discover chef specials, and get piping hot meals to your door.</p>
 
-            <div className="cta-row">
-              <Link to="/login" className="btn primary">Login</Link>
-              <Link to="/register" className="btn outline">Create Account</Link>
-            </div>
+              <form className="hero-search" onSubmit={(e)=>{e.preventDefault(); window.location.href='/menu'}}>
+                <input aria-label="Search menu" placeholder="Search dishes, restaurants or cuisines" />
+                <button className="btn primary" type="submit">Order Now</button>
+              </form>
 
-            <div className="trust-row">
-              <span className="trust-pill">Free delivery over $25</span>
-              <span className="trust-pill">30‑minute estimated delivery</span>
-              <span className="trust-pill">Secure payments</span>
-            </div>
+              <div className="cta-row">
+                <Link to="/login" className="btn outline">Login</Link>
+                <Link to="/register" className="btn ghost">Create Account</Link>
+              </div>
 
-            <div className="hero-links">
-              <a href="#features">Features</a>
-              <a href="#testimonials">Testimonials</a>
-              <a href="#footer">Contact</a>
+              <div className="trust-row">
+                <span className="trust-pill">Free delivery over $25</span>
+                <span className="trust-pill">30‑minute estimated delivery</span>
+                <span className="trust-pill">Secure payments</span>
+              </div>
+
+              <div className="hero-links">
+                <a href="#features">Features</a>
+                <a href="#testimonials">Testimonials</a>
+                <a href="#footer">Contact</a>
+              </div>
             </div>
           </div>
 
           <div className="hero-media" aria-hidden>
             <div className="media-frame">
-              <img src="https://source.unsplash.com/900x700/?gourmet,food,plated" alt="Hero food" />
-              <div className="play-badge">🍽️</div>
+              <img src="/hero.png" alt="Delicious plated food" />
+              <div className="media-overlay">Freshness you can taste</div>
             </div>
           </div>
         </div>

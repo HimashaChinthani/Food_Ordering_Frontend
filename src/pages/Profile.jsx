@@ -16,6 +16,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState(null);
 
   useEffect(() => {
     const raw = localStorage.getItem('user');
@@ -32,7 +35,34 @@ export default function Profile() {
       role: u.role || 'user',
     });
     setAvatarPreview(u.avatar || null);
+    // fetch orders for this user
+    fetchOrders(u).catch(() => {});
   }, []);
+
+  async function fetchOrders(u) {
+    if (!u) return;
+    const email = u.email || '';
+    if (!email) return;
+    setOrdersLoading(true);
+    setOrdersError(null);
+    try {
+      const url = `http://localhost:8082/api/v3/getordersms?email=${encodeURIComponent(email)}`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`Server returned ${res.status}: ${txt}`);
+      }
+      const data = await res.json();
+      // Expecting an array of orders for this user
+      const arr = Array.isArray(data) ? data : (data.orders || [data]);
+      setOrders(arr);
+    } catch (err) {
+      console.error('Failed to fetch orders', err);
+      setOrdersError('Failed to load orders: ' + (err.message || ''));
+    } finally {
+      setOrdersLoading(false);
+    }
+  }
 
   const handleChange = (key, value) => setForm((s) => ({ ...s, [key]: value }));
 
@@ -162,6 +192,40 @@ export default function Profile() {
           <h4>Danger Zone</h4>
           <p>Delete your account permanently.</p>
           <button className="btn danger" onClick={handleDelete} disabled={deleting}>{deleting ? 'Deleting...' : 'Delete Account'}</button>
+        </div>
+        <div className="orders-section">
+          <h3>My Orders</h3>
+          <div style={{ marginBottom: 10 }}>
+            <button className="btn outline" onClick={() => fetchOrders(user)} disabled={ordersLoading}>{ordersLoading ? 'Refreshing...' : 'Refresh'}</button>
+          </div>
+          {ordersLoading ? <p>Loading orders...</p> : null}
+          {ordersError ? <p style={{ color: 'var(--danger)' }}>{ordersError}</p> : null}
+          {orders && orders.length === 0 && !ordersLoading ? <p>No orders yet.</p> : null}
+          <div className="orders-list">
+            {orders.map((o) => (
+              <div key={o.orderId || o.id || o._id || Math.random()} className="order-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div><strong>Order:</strong> {o.orderId ?? o.id ?? ''}</div>
+                  <div><strong>{new Date(o.orderDate || o.createdAt || Date.now()).toLocaleString()}</strong></div>
+                </div>
+                <div style={{ marginTop: 8 }}><strong>Status:</strong> {o.status}</div>
+                <div style={{ marginTop: 8 }}><strong>Total:</strong> ₨{o.totalAmount}</div>
+                <div style={{ marginTop: 8 }}>
+                  <strong>Items:</strong>
+                  <ul>
+                    {(() => {
+                      try {
+                        const items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []);
+                        return items.map((it, i) => <li key={i}>{it.name || it.title || it.id} x {it.qty || 1} — ₨{it.price ?? it.amount ?? 0}</li>);
+                      } catch (e) {
+                        return <li>{String(o.items)}</li>;
+                      }
+                    })()}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

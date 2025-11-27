@@ -5,14 +5,14 @@
 .admin-users-hero .actions{display:flex;align-items:center;gap:12px}
 .users-search{padding:10px 12px;border-radius:10px;border:1px solid rgba(17,48,63,0.08);min-width:260px}
 .users-list{margin-top:18px}
-.notice{padding:12px;background:#fff7e6;border:1px solid #ffe3b3;border-radius:8px}
-.notice.error{background:#ffe6e6;border-color:#ffb3b3}
-.table-wrap{overflow:auto;background:#fff;padding:8px;border-radius:12px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 8px 30px rgba(17,48,63,0.04)}
+.notice{padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);border-radius:8px}
+.notice.error{background:rgba(255,80,80,0.06);border-color:rgba(255,80,80,0.12)}
+.table-wrap{overflow:auto;background:var(--surface);padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
 .users-table{width:100%;border-collapse:separate;border-spacing:0 8px}
 .users-table th,.users-table td{padding:12px 14px;text-align:left}
 .users-table thead th{background:transparent;font-weight:700;color:#445a5f;padding-left:18px}
 .users-table tbody tr{background:transparent}
-.users-table tbody tr td{background:#fff;border-radius:10px}
+.users-table tbody tr td{background:var(--surface);border-radius:10px}
 .users-table tbody tr:hover td{transform:translateY(-4px)}
 
 .idx{width:56px;font-weight:700;color:#778}
@@ -25,7 +25,7 @@
 .role-badge{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;text-transform:capitalize}
 .uid{font-size:0.85rem;color:#667;margin-top:6px}
 .mono{font-family:monospace;background:rgba(17,48,63,0.03);padding:2px 6px;border-radius:6px}
-.role-badge.admin{background:linear-gradient(90deg,#ff6b35,#ff8a4d);color:#fff}
+.role-badge.admin{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
 .role-badge.user{background:rgba(17,48,63,0.06);color:#11303f}
 
 @media (max-width:800px){
@@ -36,4 +36,4 @@
 .user-actions{display:flex;align-items:center;justify-content:flex-end}
 .action-btn{padding:8px 10px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
 .action-btn[disabled]{opacity:0.6;cursor:not-allowed}
-.btn.danger.small.action-btn{background:linear-gradient(90deg,#ff6b35,#ff8a4d);color:#fff}
+.btn.danger.small.action-btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}

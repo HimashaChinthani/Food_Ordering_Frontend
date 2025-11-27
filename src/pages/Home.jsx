@@ -46,24 +46,30 @@ const Home = () => {
       <div className="home-hero">
         <div className="hero-inner">
           <div className="hero-left">
-            <h1>Delicious meals, delivered fast</h1>
-            <p className="hero-sub">Discover local favorites and new dishes — ready to order and delivered to your door.</p>
-            <div className="hero-ctas">
-              <Link to="/menu" className="btn primary">Explore Menu</Link>
-              <Link to="/menu" className="btn ghost" style={{ marginLeft: 12 }}>Order Now</Link>
-            </div>
+            <div className="hero-panel">
+              <div className="badge">Chef's pick</div>
+              <h1>Delicious meals, delivered <span className="accent">fast</span></h1>
+              <div className="hero-sub">Discover local favorites and seasonal dishes — ready to order and delivered to your door.</div>
 
-            <div className="category-chips">
-              <Link to="/menu?category=PIZZA" className="chip">PIZZA</Link>
-              <Link to="/menu?category=BURGER" className="chip">BURGER</Link>
-              <Link to="/menu?category=DRINKS" className="chip">DRINKS</Link>
-              <Link to="/menu?category=DESSERT" className="chip">DESSERT</Link>
-              <Link to="/menu?category=SNACKS" className="chip">SNACKS</Link>
+              <p className="lead">Browse curated menus, pick your favorites, and enjoy contactless delivery.</p>
+
+              <div className="hero-ctas">
+                <Link to="/menu" className="btn primary">Explore Menu</Link>
+                <Link to="/menu" className="btn ghost" style={{ marginLeft: 12 }}>Order Now</Link>
+              </div>
+
+              <div className="category-chips">
+                <Link to="/menu?category=PIZZA" className="chip">PIZZA</Link>
+                <Link to="/menu?category=BURGER" className="chip">BURGER</Link>
+                <Link to="/menu?category=DRINKS" className="chip">DRINKS</Link>
+                <Link to="/menu?category=DESSERT" className="chip">DESSERT</Link>
+                <Link to="/menu?category=SNACKS" className="chip">SNACKS</Link>
+              </div>
             </div>
           </div>
 
           <div className="hero-right">
-            <img src="https://source.unsplash.com/900x700/?food,meal" alt="Delicious food" />
+            <img src="/delicious.jpg" alt="Delicious plated food" loading="lazy" />
           </div>
         </div>
       </div>
