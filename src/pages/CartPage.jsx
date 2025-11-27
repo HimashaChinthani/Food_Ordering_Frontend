@@ -77,6 +77,30 @@ const CartPage = () => {
   // compute grand total across fetched orders
   const grandTotal = orders.reduce((s, o) => s + (parseFloat(o.totalAmount) || 0), 0);
 
+  async function deleteOrderById(order) {
+    if (!order) return;
+    const id = order.orderId ?? order.id ?? order._id ?? null;
+    if (!id) {
+      alert('Order id not found');
+      return;
+    }
+    if (!window.confirm(`Remove order ${id}? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`http://localhost:8082/api/v3/deleteorder/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(txt || `Server ${res.status}`);
+      }
+      alert('Order removed');
+      // refresh orders
+      const raw = localStorage.getItem('user'); if (!raw) return; try { fetchOrders(JSON.parse(raw)); } catch(e){}
+      setSelectedOrderId(null);
+    } catch (err) {
+      console.error('Failed to delete order', err);
+      alert('Failed to remove order: ' + (err.message || err));
+    }
+  }
+
   return (
     <main className="cart-page orders-only">
       <div className="container">
@@ -172,6 +196,7 @@ const CartPage = () => {
                           }
                         }}>Proceed to Checkout</button>
                         <button className="btn outline" onClick={() => setSelectedOrderId(null)}>Back</button>
+                        <button className="btn danger" onClick={() => deleteOrderById(o)}>Remove</button>
                       </div>
                     </>
                   );
