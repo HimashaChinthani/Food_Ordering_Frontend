@@ -3,12 +3,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import "./AdminDashboard.css";
 
 const API = "http://localhost:8081/api/v2";
+const ORD_API = "http://localhost:8082/api/v3";
 
 export default function AdminDashboard() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState(null);
+  const [pendingOrders, setPendingOrders] = useState(0);
 
   // Form State
   const [form, setForm] = useState({
@@ -59,7 +61,22 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadItems();
+    loadPendingOrdersCount();
   }, []);
+
+  async function loadPendingOrdersCount() {
+    try {
+      const res = await fetch(`${ORD_API}/getorders`, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : (data.orders || (data.data && Array.isArray(data.data) ? data.data : []));
+      const count = arr.reduce((c, o) => c + ((String(o.status || '').toLowerCase() === 'pending') ? 1 : 0), 0);
+      setPendingOrders(count);
+    } catch (err) {
+      console.warn('Could not load pending orders count', err);
+      setPendingOrders(0);
+    }
+  }
 
   // Save (Add or Update)
   const handleSave = async (e) => {
@@ -103,6 +120,8 @@ export default function AdminDashboard() {
 
       if (!res.ok) throw new Error("Save failed");
       await loadItems();
+      // refresh pending orders count after save
+      try { await loadPendingOrdersCount(); } catch(e){}
       alert("Saved successfully!");
       setShowForm(false);
       setForm({});
@@ -125,6 +144,8 @@ export default function AdminDashboard() {
       const res = await fetch(`${API}/deletmenu/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
       await loadItems();
+      // refresh pending orders count after delete
+      try { await loadPendingOrdersCount(); } catch(e){}
     } catch (err) {
       alert("Delete failed");
       console.log(err);
@@ -147,9 +168,13 @@ export default function AdminDashboard() {
         <h2>Admin Dashboard</h2>
 
         <div className="admin-stats">
-          <div className="stat">
+          <div className="stat items">
             <div className="value">{items.length}</div>
             <div className="label">Menu Items</div>
+          </div>
+          <div className="stat pending">
+            <div className="value">{pendingOrders}</div>
+            <div className="label">Pending Orders</div>
           </div>
           <div className="stat">
             <div className="value">${revenue.toFixed(2)}</div>
