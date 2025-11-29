@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './CartPage.css';
 
@@ -10,6 +11,9 @@ const CartPage = () => {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState(null);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [payAllLoading, setPayAllLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const raw = localStorage.getItem('user');
@@ -49,12 +53,18 @@ const CartPage = () => {
       const arr = Array.isArray(data) ? data : (data.orders || (data.data && Array.isArray(data.data) ? data.data : [data]));
 
       // Filter server response to ensure we only display orders belonging to the current logged-in user
+      // and only show orders whose status is pending
       const filtered = arr.filter(order => {
         const oid = order.user_id ?? order.userId ?? order.user ?? order.customerId ?? order.customer_id ?? order.userid ?? order.id ?? null;
         const oemail = (order.customerEmail ?? order.customer_email ?? order.email ?? (order.customer && order.customer.email) ?? '').toString().toLowerCase();
         const matchById = userId && oid != null && String(oid) === String(userId);
         const matchByEmail = email && oemail && oemail === String(email).toLowerCase();
-        return matchById || matchByEmail;
+        if (!(matchById || matchByEmail)) return false;
+
+        // Normalize status value and show only pending orders
+        const statusRaw = (order.status ?? order.order_status ?? order.paymentStatus ?? '').toString();
+        const status = statusRaw.trim().toLowerCase();
+        return status.includes('pending');
       });
 
       setOrders(filtered);
@@ -101,6 +111,183 @@ const CartPage = () => {
     }
   }
 
+  async function handleProceedToCheckout(o) {
+    if (!o) return;
+    setCheckoutLoading(true);
+    try {
+      const userRaw = localStorage.getItem('user');
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      let itemsList = [];
+      try { itemsList = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch (e) { itemsList = []; }
+
+      // compute total if not present
+      const computedTotal = itemsList.reduce((s, it) => s + (parseFloat(it.price) || 0) * (it.qty || 1), 0);
+
+      // normalize the user id the backend expects in `user_id` column
+      const rawUserId = user ? (user.id ?? user._id ?? user.userId) : null;
+      // if it's numeric-like, send as Number; otherwise keep string (Mongo _id etc.)
+      const normalizedUserId = rawUserId != null && String(rawUserId).match(/^\d+$/) ? Number(rawUserId) : rawUserId;
+
+      const payload = {
+        orderId: o.orderId ?? o.id ?? null,
+        customerName: o.customerName ?? (user && (user.name || user.fullName || user.username)) ?? '',
+        customerEmail: o.customerEmail ?? user?.email ?? '',
+        status: 'COMPLETED',
+        totalAmount: parseFloat(o.totalAmount) || computedTotal,
+        orderDate: o.orderDate ?? new Date().toISOString(),
+        items: JSON.stringify(itemsList),
+        // backend expects `user_id` column; send snake_case key to match DTO mapping
+        user_id: normalizedUserId,
+      };
+
+      // debug logs: show current user and the exact payload being sent
+      console.log('checkout user (from localStorage):', user);
+      console.log('checkout payload (sent):', payload);
+
+      const res = await fetch('http://localhost:8082/api/v3/paid-orders/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      // try to read response body as text first (some servers return HTML or plain text on 500)
+      const rawText = await res.text().catch(() => null);
+      let data = null;
+      try { data = rawText ? JSON.parse(rawText) : null; } catch (e) { data = null; }
+      if (!res.ok) {
+        const errMsg = (data && (data.message || data.error)) || (rawText && rawText.substring(0, 100)) || `Server ${res.status}`;
+        // show more detailed info in console for debugging
+        console.error('Checkout server error response:', { status: res.status, rawText, parsed: data });
+        alert('Failed to save payment: ' + errMsg);
+        return;
+      }
+
+
+      // navigate to success page with payment info
+      console.log('Payment saved, attempting to update order status to COMPLETED.', data);
+      try {
+        const returnedOrderId = (data && (data.orderId ?? data.order_id)) ?? (o.orderId ?? o.id ?? null);
+        if (returnedOrderId) {
+          const updateUrl = `http://localhost:8082/api/v3/updatestatus/${encodeURIComponent(returnedOrderId)}`;
+          console.log('Updating order status using URL:', updateUrl);
+          const updRes = await fetch(updateUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'COMPLETED' })
+          });
+          const updText = await updRes.text().catch(() => '');
+          if (!updRes.ok) {
+            console.warn('Failed to update order status after payment:', returnedOrderId, updRes.status, updText);
+          } else {
+            console.log('Order status updated to COMPLETED for order:', returnedOrderId, updText);
+          }
+        } else {
+          console.warn('No order id available to update status for order', o);
+        }
+      } catch (e) {
+        console.error('Error updating order status after payment', e);
+      }
+
+      // navigate to success page with payment info
+      navigate('/payment-success', { state: { payment: data } });
+
+    } catch (err) {
+      console.error('Checkout error', err);
+      alert('Checkout error: ' + (err.message || err));
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
+
+  // Pay all fetched orders in sequence. This will POST each order as a payment record.
+  async function handlePayAllOrders() {
+    if (!orders || orders.length === 0) return;
+    if (!window.confirm(`Proceed to pay ${orders.length} order(s)?`)) return;
+    setPayAllLoading(true);
+    const successes = [];
+    const failures = [];
+
+    for (const o of orders) {
+      try {
+        let itemsList = [];
+        try { itemsList = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch (e) { itemsList = []; }
+        const computedTotal = itemsList.reduce((s, it) => s + (parseFloat(it.price) || 0) * (it.qty || 1), 0);
+
+        const raw = localStorage.getItem('user');
+        const user = raw ? JSON.parse(raw) : null;
+        const rawUserId = user ? (user.id ?? user._id ?? user.userId) : null;
+        const normalizedUserId = rawUserId != null && String(rawUserId).match(/^\d+$/) ? Number(rawUserId) : rawUserId;
+
+        const payload = {
+          orderId: o.orderId ?? o.id ?? null,
+          customerName: o.customerName ?? (user && (user.name || user.fullName || user.username)) ?? '',
+          customerEmail: o.customerEmail ?? user?.email ?? '',
+          status: 'COMPLETED',
+          totalAmount: parseFloat(o.totalAmount) || computedTotal,
+          orderDate: o.orderDate ?? new Date().toISOString(),
+          items: JSON.stringify(itemsList),
+          user_id: normalizedUserId,
+        };
+
+        console.log('pay-all payload:', payload);
+
+        const res = await fetch('http://localhost:8082/api/v3/paid-orders/add', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+
+        const rawText = await res.text().catch(() => null);
+        let data = null; try { data = rawText ? JSON.parse(rawText) : null; } catch(e) { data = null; }
+        if (!res.ok) {
+          failures.push({ order: o, status: res.status, body: rawText || data });
+          console.error('pay all error for order', o, { status: res.status, rawText, parsed: data });
+        } else {
+          const saved = data || rawText;
+          successes.push(saved);
+          console.log('Payment saved for order (pay-all):', saved);
+          // try to update order status to COMPLETED using server-returned id or original
+          try {
+            const returnedOrderId = (data && (data.orderId ?? data.order_id)) ?? (o.orderId ?? o.id ?? null);
+            if (returnedOrderId) {
+              const updateUrl = `http://localhost:8082/api/v3/updatestatus/${encodeURIComponent(returnedOrderId)}`;
+              console.log('Updating order status (pay-all) using URL:', updateUrl);
+              const updRes = await fetch(updateUrl, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'COMPLETED' })
+              });
+              const updText = await updRes.text().catch(() => '');
+              if (!updRes.ok) {
+                console.warn('Failed to update order status (pay-all):', returnedOrderId, updRes.status, updText);
+              } else {
+                console.log('Order status updated to COMPLETED (pay-all):', returnedOrderId, updText);
+              }
+            } else {
+              console.warn('No order id available to update status (pay-all) for order', o);
+            }
+          } catch (e) {
+            console.error('Error updating order status (pay-all)', e);
+          }
+        }
+      } catch (err) {
+        failures.push({ order: o, error: err.message || err });
+        console.error('pay all unexpected error for order', o, err);
+      }
+    }
+
+    setPayAllLoading(false);
+
+    // Show summary
+    const ok = successes.length;
+    const bad = failures.length;
+    alert(`Pay All completed: ${ok} succeeded, ${bad} failed` + (bad ? '. Check console for details.' : ''));
+
+    // refresh orders
+    try { const raw = localStorage.getItem('user'); if (raw) fetchOrders(JSON.parse(raw)); } catch(e){}
+
+    // If at least one payment succeeded, navigate to payment-success for the first
+    if (successes.length > 0) {
+      navigate('/payment-success', { state: { payment: successes[0] } });
+    }
+  }
+
   return (
     <main className="cart-page orders-only">
       <div className="container">
@@ -110,6 +297,9 @@ const CartPage = () => {
             <button className="btn outline" onClick={() => {
               const raw = localStorage.getItem('user'); if (!raw) return; try { fetchOrders(JSON.parse(raw)); } catch(e){}
             }} disabled={ordersLoading}>{ordersLoading ? 'Refreshing...' : 'Refresh'}</button>
+            <button className="btn primary" onClick={handlePayAllOrders} disabled={ordersLoading || payAllLoading || orders.length===0}>
+              {payAllLoading ? `Processing (${orders.length})...` : 'Pay All Orders'}
+            </button>
           </div>
         </div>
 
@@ -118,7 +308,7 @@ const CartPage = () => {
 
         {orders && orders.length === 0 && !ordersLoading ? (
           <div className="empty-state">
-            <p>No orders found for your account.</p>
+            <p>No pending orders found for your account.</p>
             <a className="btn primary" href="/menu">Browse Menu</a>
           </div>
         ) : (
@@ -173,28 +363,11 @@ const CartPage = () => {
                       <div className="summary-row"><span>All Orders Total</span><strong>₨{(grandTotal||0).toFixed(2)}</strong></div>
 
                       <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
-                        <button className="btn primary" onClick={async () => {
-                          // proceed to checkout for this order
-                          try {
-                            const userRaw = localStorage.getItem('user');
-                            const user = userRaw ? JSON.parse(userRaw) : null;
-                            const payload = { orderId: o.orderId ?? o.id ?? null, user_id: user ? (user.id ?? user._id ?? user.userId) : null };
-                            const res = await fetch('http://localhost:8082/api/v3/checkout', {
-                              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                            });
-                            if (!res.ok) {
-                              const txt = await res.text().catch(()=>'');
-                              alert('Checkout failed: ' + (txt || res.status));
-                              return;
-                            }
-                            alert('Checkout successful');
-                            // refresh orders
-                            fetchOrders(JSON.parse(localStorage.getItem('user'))).catch(()=>{});
-                          } catch (err) {
-                            console.error(err);
-                            alert('Checkout error: ' + (err.message || err));
-                          }
-                        }}>Proceed to Checkout</button>
+                        <button
+                          className="btn primary"
+                          onClick={() => handleProceedToCheckout(o)}
+                          disabled={checkoutLoading}
+                        >{checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}</button>
                         <button className="btn outline" onClick={() => setSelectedOrderId(null)}>Back</button>
                         <button className="btn danger" onClick={() => deleteOrderById(o)}>Remove</button>
                       </div>

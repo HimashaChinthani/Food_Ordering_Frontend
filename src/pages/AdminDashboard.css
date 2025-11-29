@@ -15,6 +15,9 @@
 .stat.pending{background:linear-gradient(90deg, rgba(255,243,224,0.9), rgba(255,250,240,0.8));border:1px solid rgba(243,156,18,0.15);box-shadow:0 6px 18px rgba(243,156,18,0.06)}
 .stat.pending .value{color:#d35400;font-weight:900;font-size:1.25rem}
 .stat.pending .label{color:#8a5a2b;font-size:0.95rem}
+
+/* Revenue highlight - bold and green to stand out */
+.stat .value.revenue-value{color:#0b8a2e;font-size:1.35rem;font-weight:900;text-shadow:0 1px 0 rgba(0,0,0,0.04)}
 .actions{margin-left:12px}
 .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:16px}
 .item-card{background:var(--surface);border-radius:12px;border:1px solid rgba(255,255,255,0.04);overflow:hidden;display:flex;flex-direction:column}

@@ -24,14 +24,29 @@ export default function AdminDashboard() {
   });
 
   // Calculate revenue
-  const revenue = useMemo(
-    () =>
-      items.reduce(
-        (s, p) => s + (Number(p.price || 0) * Number(p.sold || 0)),
-        0
-      ),
-    [items]
-  );
+  // Revenue calculated from completed orders (fetched from orders API)
+  const [orderRevenue, setOrderRevenue] = useState(0);
+
+  const loadOrdersRevenue = async () => {
+    try {
+      const res = await fetch(`${ORD_API}/getorders`, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : (data.orders || (data.data && Array.isArray(data.data) ? data.data : []));
+
+      const sum = arr.reduce((s, o) => {
+        const status = (o.status || o.order_status || '').toString().toLowerCase();
+        if (!status.includes('completed')) return s;
+        const t = parseFloat(o.totalAmount || o.total || o.price || 0) || 0;
+        return s + t;
+      }, 0);
+
+      setOrderRevenue(sum);
+    } catch (err) {
+      console.warn('Failed to load order revenue', err);
+      setOrderRevenue(0);
+    }
+  };
 
   // Load all menu items
   const loadItems = async () => {
@@ -63,6 +78,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadItems();
     loadPendingOrdersCount();
+    loadOrdersRevenue();
   }, []);
 
   async function loadPendingOrdersCount() {
@@ -171,7 +187,7 @@ export default function AdminDashboard() {
 
         <div className="admin-stats">
           <div className="stat items">
-            <div className="value">{items.length}</div>
+            <div className="value"><b>{items.length}</b></div>
             <div className="label">Menu Items</div>
           </div>
           <div className="stat pending">
@@ -179,7 +195,7 @@ export default function AdminDashboard() {
             <div className="label">Pending Orders</div>
           </div>
           <div className="stat">
-            <div className="value">${revenue.toFixed(2)}</div>
+            <div className="value revenue-value"><b>₨{orderRevenue.toFixed(2)}</b></div>
             <div className="label">Revenue</div>
           </div>
         </div>
@@ -212,7 +228,7 @@ export default function AdminDashboard() {
               <h4>{p.name}</h4>
               <p>{p.description}</p>
               <p>
-                <b>${p.price}</b> | {p.category}
+                <b>₨{Number(p.price || 0).toFixed(2)}</b> | {p.category}
               </p>
 
               <div className="card-actions">

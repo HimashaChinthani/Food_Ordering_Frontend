@@ -8,6 +8,7 @@ import MenuItemDetail from './pages/MenuItemDetail';
 import CartPage from './pages/CartPage';
 import MainLanding from './pages/MainLanding';
 import About from './pages/About';
+import PaymentSuccess from './pages/PaymentSuccess';
 import Mission from './pages/Mission';
 import Vision from './pages/Vision';
 import Service from './pages/Service';
@@ -90,6 +91,7 @@ function InnerApp() {
           <Route path="/menu" element={<RequireAuth><MenuPage /></RequireAuth>} />
           <Route path="/menu/:id" element={<RequireAuth><MenuItemDetail /></RequireAuth>} />
           <Route path="/cart" element={<RequireAuth><CartPage /></RequireAuth>} />
+          <Route path="/payment-success" element={<RequireAuth><PaymentSuccess /></RequireAuth>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>

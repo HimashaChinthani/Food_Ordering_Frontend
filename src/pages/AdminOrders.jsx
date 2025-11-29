@@ -8,6 +8,7 @@ export default function AdminOrders() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [modalOrder, setModalOrder] = useState(null);
 
   const totalRevenue = useMemo(() => {
@@ -46,6 +47,23 @@ export default function AdminOrders() {
     }
   }
 
+  async function deleteOrderByIdAdmin(id) {
+    if (!id) return;
+    if (!window.confirm(`Remove order ${id}? This will permanently delete the order.`)) return;
+    try {
+      const res = await fetch(`${API}/deleteorder/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(txt || `Server ${res.status}`);
+      }
+      // refresh
+      loadOrders();
+    } catch (err) {
+      console.error('Failed to delete order', err);
+      alert('Failed to remove order: ' + (err.message || err));
+    }
+  }
+
   // helper to render item image (supports base64 or data: uri)
   const renderItemImage = (img) => {
     if (!img) return null;
@@ -64,6 +82,15 @@ export default function AdminOrders() {
     const name = (o.customerName || o.customer_name || (o.customer && o.customer.name) || '').toString().toLowerCase();
     const email = (o.customerEmail || o.customer_email || (o.customer && o.customer.email) || '').toString().toLowerCase();
     return id.includes(q) || name.includes(q) || email.includes(q);
+  });
+
+  // apply status filter
+  const statusFiltered = filtered.filter(o => {
+    if (!statusFilter || statusFilter === 'all') return true;
+    const statusRaw = (o.status || o.order_status || o.paymentStatus || '').toString().toLowerCase();
+    if (statusFilter === 'pending') return statusRaw.includes('pending');
+    if (statusFilter === 'completed') return statusRaw.includes('completed');
+    return true;
   });
 
   return (
@@ -87,6 +114,21 @@ export default function AdminOrders() {
       </header>
 
       <div className="admin-orders-controls">
+        <div className="filter-group">
+          <button
+            className={statusFilter === 'all' ? 'btn primary' : 'btn outline'}
+            onClick={() => setStatusFilter('all')}
+          >All</button>
+          <button
+            className={statusFilter === 'pending' ? 'btn primary' : 'btn outline'}
+            onClick={() => setStatusFilter('pending')}
+          >Pending</button>
+          <button
+            className={statusFilter === 'completed' ? 'btn primary' : 'btn outline'}
+            onClick={() => setStatusFilter('completed')}
+          >Completed</button>
+        </div>
+
         <input className="search" placeholder="Search by order id, name or email" value={query} onChange={e => setQuery(e.target.value)} />
         <button className="btn outline" onClick={loadOrders} disabled={loading}>{loading ? 'Refreshing...' : 'Refresh'}</button>
       </div>
@@ -112,7 +154,7 @@ export default function AdminOrders() {
       )}
 
       <section className="orders-grid">
-        {filtered.map((o) => {
+        {statusFiltered.map((o) => {
           const id = o.orderId || o.id || o._id || '';
           const date = new Date(o.orderDate || o.createdAt || Date.now()).toLocaleString();
           let items = [];
@@ -139,6 +181,14 @@ export default function AdminOrders() {
                   <div className={`status ${((o.status||'pending')+'').toLowerCase()}`}>{o.status || 'PENDING'}</div>
                   <div className="order-date">{date}</div>
                   <div className="order-total">{fmt(total)}</div>
+                    {((o.status||'')+'' ).toLowerCase().includes('completed') && (
+                      <div style={{ marginTop: 8 }}>
+                        <button
+                          className="btn danger"
+                          onClick={(e) => { e.stopPropagation(); deleteOrderByIdAdmin(id); }}
+                        >Remove</button>
+                      </div>
+                    )}
                 </div>
               </div>
 
@@ -231,6 +281,9 @@ export default function AdminOrders() {
             </div>
             <div className="modal-actions">
               <button className="btn outline" onClick={() => setModalOrder(null)}>Close</button>
+              {((modalOrder.status||'')+'').toLowerCase().includes('completed') && (
+                <button className="btn danger" onClick={() => { if(window.confirm('Remove this completed order?')){ deleteOrderByIdAdmin(modalOrder.orderId || modalOrder.id || modalOrder._id); setModalOrder(null);} }}>Remove</button>
+              )}
             </div>
           </div>
         </div>
