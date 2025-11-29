@@ -20,6 +20,7 @@ export default function AdminDashboard() {
     price: "",
     description: "",
     image: null,
+    quantity: 0,
   });
 
   // Calculate revenue
@@ -99,6 +100,7 @@ export default function AdminDashboard() {
       description: form.description,
       price: Number(form.price),
       image: img,
+      quantity: Number(form.quantity) || 0,
     };
 
     // include common alternate id keys the backend might expect
@@ -124,7 +126,7 @@ export default function AdminDashboard() {
       try { await loadPendingOrdersCount(); } catch(e){}
       alert("Saved successfully!");
       setShowForm(false);
-      setForm({});
+      setForm({ id: null, name: "", category: "PIZZA", price: "", description: "", image: null, quantity: 0 });
     } catch (err) {
       alert("Save failed");
       console.log(err);
@@ -185,7 +187,7 @@ export default function AdminDashboard() {
         <button
           className="btn primary"
           onClick={() => {
-            setForm({ id: null });
+            setForm({ id: null, name: "", category: "PIZZA", price: "", description: "", image: null, quantity: 0 });
             setShowForm(true);
           }}
         >
@@ -221,6 +223,7 @@ export default function AdminDashboard() {
                       ...p,
                       id: getItemId(p),
                       image: p.image ? displayImage(p.image) : null,
+                      quantity: p.quantity ?? p.qty ?? 0,
                     });
                     setShowForm(true);
                   }}
@@ -244,7 +247,10 @@ export default function AdminDashboard() {
         <div className="modal-overlay">
           <div className="modal modal-card">
             <div className="modal-header">
-              <h3>{form.id ? "Edit Item" : "Add Item"}</h3>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                <h3 style={{margin: 0}}>{form.id ? "Edit Item" : "Add Item"}</h3>
+                <div className="modal-available">Available: <span className="avail-count">{form.quantity ?? 0}</span></div>
+              </div>
               <button
                 type="button"
                 className="close-btn"
@@ -289,6 +295,16 @@ export default function AdminDashboard() {
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
                     required
                     className="input"
+                  />
+
+                  <label className="label">Available Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Quantity"
+                    value={form.quantity ?? 0}
+                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                    className="input quantity-input"
                   />
                 </div>
 

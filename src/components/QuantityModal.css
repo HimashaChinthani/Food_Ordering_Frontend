@@ -1,0 +1,9 @@
+.qm-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:1200}
+.qm-modal{width:320px;max-width:92%;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));border-radius:10px;padding:18px;box-shadow:0 6px 18px rgba(0,0,0,0.6);color:#fff}
+.qm-modal h3{margin:0 0 10px 0;font-size:1.05rem}
+.qm-body{display:flex;justify-content:center;margin-bottom:12px}
+.qm-input{width:120px;padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.35);color:#fff;font-size:1rem;text-align:center}
+.qm-actions{display:flex;gap:8px;justify-content:flex-end}
+.qm-btn{padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;font-weight:600}
+.qm-confirm{background:linear-gradient(90deg,#7b2eff,#a23bff);color:#fff}
+.qm-cancel{background:transparent;color:#cfd8dc}

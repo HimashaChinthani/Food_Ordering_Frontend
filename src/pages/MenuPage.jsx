@@ -68,7 +68,7 @@ const MenuPage = () => {
     });
   }, [products, q, cat]);
 
-  const handleAdd = (item) => add(item);
+  const handleAdd = (item, qty = 1) => add(item, qty);
 
   return (
     <div className="menu-page">

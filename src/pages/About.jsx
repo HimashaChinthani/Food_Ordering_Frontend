@@ -18,7 +18,10 @@ const About = () => {
             <span className="pill">Secure Payments</span>
           </div>
         </div>
-        <img src="https://source.unsplash.com/900x600/?restaurant,kitchen,chef" alt="About" />
+        <div className="media-frame about-frame">
+          <img src="/about.jpg" alt="About FoodieHub" />
+          <div className="media-badge">Our Story</div>
+        </div>
       </div>
 
       <div className="cards" id="services">

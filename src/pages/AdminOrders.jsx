@@ -31,7 +31,13 @@ export default function AdminOrders() {
       if (!res.ok) throw new Error(`Server ${res.status}`);
       const data = await res.json();
       const arr = Array.isArray(data) ? data : (data.orders || (data.data && Array.isArray(data.data) ? data.data : []));
-      setOrders(arr);
+      // sort newest first by created/order date when possible
+      const sorted = Array.from(arr).sort((a, b) => {
+        const da = new Date(a.orderDate || a.createdAt || a.created_at || 0).getTime() || 0;
+        const db = new Date(b.orderDate || b.createdAt || b.created_at || 0).getTime() || 0;
+        return db - da;
+      });
+      setOrders(sorted);
     } catch (err) {
       console.error('Failed to load orders', err);
       setError('Failed to load orders');
@@ -39,6 +45,15 @@ export default function AdminOrders() {
       setLoading(false);
     }
   }
+
+  // helper to render item image (supports base64 or data: uri)
+  const renderItemImage = (img) => {
+    if (!img) return null;
+    try {
+      if (String(img).startsWith('data:')) return img;
+    } catch (e) {}
+    return `data:image/png;base64,${img}`;
+  };
 
   // Note: status-update actions removed per request. Cards open a details modal.
 
@@ -134,8 +149,20 @@ export default function AdminOrders() {
                     {items.map((it, i) => (
                       <tr key={i}>
                         <td>
-                          <div className="item-name">{it.name || it.title || it.id}</div>
-                          <div className="item-meta">Unit: {fmt(parseFloat(it.price)||0)}</div>
+                          <div className="item-cell">
+                            <div className="item-media">
+                              {it.image ? (
+                                <img src={renderItemImage(it.image)} alt={it.name || it.title || ''} />
+                              ) : (
+                                <div className="no-thumb" />
+                              )}
+                              <div className="qty-badge">{it.qty || 1}</div>
+                            </div>
+                            <div className="item-info">
+                              <div className="item-name">{it.name || it.title || it.id}</div>
+                              <div className="item-meta">Unit: {fmt(parseFloat(it.price)||0)}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="center">{it.qty || 1}</td>
                         <td className="right">{fmt(parseFloat(it.price)||0)}</td>
@@ -168,17 +195,35 @@ export default function AdminOrders() {
                 <table>
                   <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Line Total</th></tr></thead>
                   <tbody>
-                    {(() => { let itms = []; try { itms = typeof modalOrder.items === 'string' ? JSON.parse(modalOrder.items) : (modalOrder.items || []); } catch(e) { itms = []; } return itms.map((it,i)=> (
-                      <tr key={i}>
-                        <td>
-                          <div className="item-name">{it.name||it.title||it.id}</div>
-                          <div className="item-meta">Unit: {fmt(it.price||0)}</div>
-                        </td>
-                        <td className="center">{it.qty||1}</td>
-                        <td className="right">{fmt(it.price||0)}</td>
-                        <td className="right">{fmt(((parseFloat(it.price)||0)*(it.qty||1)))}</td>
-                      </tr>
-                    )) })()}
+                    {(() => {
+                      let itms = [];
+                      try {
+                        itms = typeof modalOrder.items === 'string' ? JSON.parse(modalOrder.items) : (modalOrder.items || []);
+                      } catch (e) { itms = []; }
+                      return itms.map((it, i) => (
+                        <tr key={i}>
+                          <td>
+                            <div className="item-cell">
+                              <div className="item-media">
+                                {it.image ? (
+                                  <img src={renderItemImage(it.image)} alt={it.name || it.title || ''} />
+                                ) : (
+                                  <div className="no-thumb" />
+                                )}
+                                <div className="qty-badge">{it.qty || 1}</div>
+                              </div>
+                              <div className="item-info">
+                                <div className="item-name">{it.name || it.title || it.id}</div>
+                                <div className="item-meta">Unit: {fmt(it.price || 0)}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="center">{it.qty || 1}</td>
+                          <td className="right">{fmt(it.price || 0)}</td>
+                          <td className="right">{fmt(((parseFloat(it.price) || 0) * (it.qty || 1)))}</td>
+                        </tr>
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>

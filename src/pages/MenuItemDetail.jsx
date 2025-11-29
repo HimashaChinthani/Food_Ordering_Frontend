@@ -74,7 +74,7 @@ const MenuItemDetail = () => {
           <div className="meta">
             <div className="price">₨{Number(item.price || 0).toFixed(2)}</div>
             <div>
-              <button className="btn primary" onClick={() => add(item)}>Add to cart</button>
+              <button className="btn primary" onClick={() => add(item, 1)}>Add to cart</button>
               <Link to="/menu" className="btn ghost" style={{ marginLeft: 10 }}>Back</Link>
             </div>
           </div>

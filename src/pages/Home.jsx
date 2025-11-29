@@ -89,7 +89,7 @@ const Home = () => {
                 <MenuCard
                   key={item.id}
                   item={{ ...item, image: displayImage(item.image) }}
-                  onAdd={() => add(item)}
+                  onAdd={(it, qty) => add(it, qty)}
                 />
               ))}
             </div>

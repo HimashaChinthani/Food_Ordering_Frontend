@@ -42,8 +42,17 @@
 .status-pill.cancelled{background:rgba(220,53,69,0.08);color:#dc3545}
 .order-items{margin-top:12px}
 .items-table{width:100%;border-collapse:collapse}
-.items-table th{text-align:left;padding:6px 8px;color:var(--muted);font-size:0.9rem}
-.items-table td{padding:8px;border-top:1px solid rgba(255,255,255,0.02)}
+.items-table{width:100%;border-collapse:collapse;background:transparent;border-radius:8px;overflow:hidden}
+.items-table thead th{padding:10px 12px;font-size:0.95rem;text-align:left;background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.95);font-weight:700}
+.items-table tbody td{padding:10px 12px;border-top:1px solid rgba(255,255,255,0.02);color:rgba(230,245,245,0.95);vertical-align:middle}
+.items-table thead th:nth-child(1), .items-table tbody td:nth-child(1) { width: 58%; }
+.items-table thead th:nth-child(2), .items-table tbody td:nth-child(2) { width: 10%; text-align:center; }
+.items-table thead th:nth-child(3), .items-table tbody td:nth-child(3) { width: 16%; text-align:right; }
+.items-table thead th:nth-child(4), .items-table tbody td:nth-child(4) { width: 16%; text-align:right; }
+.items-table td { vertical-align: middle; }
+
+/* ensure the table container matches summary card background */
+.summary-card .order-items{background:transparent;padding:8px;border-radius:8px}
 .order-footer{display:flex;justify-content:flex-end;margin-top:12px}
 .order-total{font-size:1.05rem}
 

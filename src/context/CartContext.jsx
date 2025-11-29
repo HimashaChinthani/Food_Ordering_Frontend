@@ -20,13 +20,14 @@ export const CartProvider = ({ children }) => {
     } catch(e){}
   }, [items]);
 
-  const add = (item) => {
+  const add = (item, qty = 1) => {
+    const q = Math.max(1, parseInt(qty) || 1);
     setItems(prev => {
       const found = prev.find(p => p.id === item.id);
-      if (found) return prev.map(p => p.id === item.id ? { ...p, qty: (p.qty || 1) + 1 } : p);
-      return [...prev, { ...item, qty: 1 }];
+      if (found) return prev.map(p => p.id === item.id ? { ...p, qty: (p.qty || 1) + q } : p);
+      return [...prev, { ...item, qty: q }];
     });
-    trySendOrder(item, 1);
+    trySendOrder(item, q);
   };
 
   // Backend API endpoint
@@ -78,12 +79,15 @@ export const CartProvider = ({ children }) => {
         if (!res.ok) {
           const text = await res.text().catch(() => '');
           console.warn('Order API responded with error', res.status, text);
+          try { window.alert('Failed to add order: ' + (text || res.statusText || res.status)); } catch (e) {}
         } else {
           const data = await res.json().catch(() => null);
           console.log('Order created', data);
+          try { window.alert('Successfully added your order'); } catch (e) {}
         }
       }).catch(err => {
         console.warn('Failed to send order to backend', err.message || err);
+        try { window.alert('Failed to add order: network error'); } catch (e) {}
       });
     } catch (err) {
       console.warn('trySendOrder error', err);
