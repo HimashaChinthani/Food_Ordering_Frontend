@@ -18,6 +18,13 @@ const MenuItemDetail = () => {
   const [reviews, setReviews] = useState([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [reviewSuccess, setReviewSuccess] = useState('');
+
+  function resolveUserId(u) {
+    if (!u) return null;
+    const id = String(u.id ?? u._id ?? u.userId ?? u.userid ?? u.user_id ?? '').trim();
+    return id === '' ? null : (Number(id).toString() === id ? Number(id) : id);
+  }
 
   function loadReviews() {
     try {
@@ -76,14 +83,85 @@ const MenuItemDetail = () => {
       try { loadReviews(); } catch (e) { /* ignore */ }
     }, [menuId]);
 
-  const submitReview = (e) => {
+  const submitReview = async (e) => {
     e.preventDefault();
     const { rating, comment } = reviewForm;
     if (!comment) return alert('Please provide a comment');
-    const r = { id: Date.now(), name: 'Anonymous', rating: Number(rating) || 0, comment, date: new Date().toISOString() };
-    const next = [r, ...reviews];
-    saveReviews(next);
-    setShowReviewModal(false);
+
+    // include logged-in user id when available (resolve multiple possible keys)
+    let userId = null;
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (rawUser) {
+        const u = JSON.parse(rawUser);
+        userId = resolveUserId(u);
+      }
+    } catch (e) {
+      // fallback to legacy keys
+      const alt = localStorage.getItem('userId') || localStorage.getItem('user_id') || null;
+      if (alt) {
+        const maybe = String(alt).trim();
+        userId = maybe === '' ? null : (Number(maybe).toString() === maybe ? Number(maybe) : maybe);
+      }
+    }
+
+    const payload = {
+      menuId: menuId,
+      userId,
+      name: 'Anonymous',
+      rating: Number(rating) || 0,
+      comment: String(comment || ''),
+    };
+
+    // Try POSTing to server; fall back to localStorage on failure
+    try {
+      // Debug: print payload and user id to console so developer can verify
+      console.log('Submitting review payload to /api/v2/addreview:', payload);
+      console.log('Resolved userId:', payload.userId);
+
+      const res = await fetch('http://localhost:8081/api/v2/addreview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        // backend may return the saved review or a wrapper
+        const data = await res.json().catch(() => null);
+        console.log('Add review response (server):', data || 'no-json');
+        let saved = null;
+        if (data) {
+          // try common shapes
+          if (data.review) saved = data.review;
+          else if (Array.isArray(data) && data.length > 0) saved = data[0];
+          else if (typeof data === 'object') saved = data;
+        }
+
+        const r = saved && typeof saved === 'object'
+          ? ({ id: saved.id || Date.now(), name: saved.name || payload.name, rating: saved.rating || payload.rating, comment: saved.comment || payload.comment, date: saved.date || new Date().toISOString() })
+          : ({ id: Date.now(), name: payload.name, rating: payload.rating, comment: payload.comment, date: new Date().toISOString() });
+
+        saveReviews([r, ...reviews]);
+        setReviewSuccess('Review added successfully');
+        setTimeout(() => setReviewSuccess(''), 3000);
+      } else {
+        const txt = await res.text().catch(() => '');
+        console.warn('Add review failed:', res.status, txt);
+        console.log('Server rejected review payload:', payload);
+        // fallback to local
+        const r = { id: Date.now(), name: payload.name, rating: payload.rating, comment: payload.comment, date: new Date().toISOString() };
+        saveReviews([r, ...reviews]);
+        setReviewSuccess('Review saved locally');
+        setTimeout(() => setReviewSuccess(''), 3000);
+      }
+    } catch (err) {
+      console.warn('Failed to post review, saving locally', err);
+      console.log('Review payload on network error:', payload);
+      const r = { id: Date.now(), name: payload.name, rating: payload.rating, comment: payload.comment, date: new Date().toISOString() };
+      saveReviews([r, ...reviews]);
+    } finally {
+      setShowReviewModal(false);
+    }
   };
 
   function ReviewModal() {
@@ -166,13 +244,15 @@ const MenuItemDetail = () => {
 
           <div className="reviews-section">
             <div className="reviews-header">
-              <h3>Reviews <span className="reviews-count">({reviews.length})</span></h3>
+                <h3>Reviews <span className="reviews-count">({reviews.length})</span></h3>
               <div>
                 <button className="btn outline" onClick={openAddReview}>Add Review</button>
               </div>
             </div>
 
-            {reviews.length === 0 && <p className="muted">No reviews yet. Be the first to review!</p>}
+              {reviewSuccess && <div className="review-success">{reviewSuccess}</div>}
+
+              {reviews.length === 0 && <p className="muted">No reviews yet. Be the first to review!</p>}
 
             <div className="reviews-list">
               {reviews.map((r) => (
