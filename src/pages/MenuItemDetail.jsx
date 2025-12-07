@@ -19,6 +19,8 @@ const MenuItemDetail = () => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [reviewSuccess, setReviewSuccess] = useState('');
+  const [editingReview, setEditingReview] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   function resolveUserId(u) {
     if (!u) return null;
@@ -27,33 +29,77 @@ const MenuItemDetail = () => {
   }
 
   function loadReviews() {
+    if (!menuId) return;
     try {
-      const key = `reviews:${menuId}`;
-      const raw = localStorage.getItem(key);
-      const arr = raw ? JSON.parse(raw) : [];
-      setReviews(Array.isArray(arr) ? arr : []);
+      fetch(`${API}/reviews/${encodeURIComponent(menuId)}`)
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          const arr = Array.isArray(data) ? data : [];
+          setReviews(arr);
+        })
+        .catch(err => {
+          console.warn('Failed to load reviews from API', err);
+          setReviews([]);
+        });
     } catch (e) {
       console.warn('Failed to load reviews', e);
       setReviews([]);
     }
   }
 
-  function saveReviews(arr) {
-    try {
-      const key = `reviews:${menuId}`;
-      localStorage.setItem(key, JSON.stringify(arr));
-      setReviews(arr);
-    } catch (e) {
-      console.warn('Failed to save reviews', e);
-    }
-  }
-
   const openAddReview = () => {
+    setEditingReview(null);
     setReviewForm({ name: '', rating: 5, comment: '' });
     setShowReviewModal(true);
   };
 
+  const openEditReview = (review) => {
+    setEditingReview(review);
+    setReviewForm({ rating: review.rating || 5, comment: review.comment || '' });
+    setShowReviewModal(true);
+  };
+
+  const deleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review?')) return;
+    
+    try {
+      const res = await fetch(`http://localhost:8081/api/v2/deletereview/${reviewId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setReviewSuccess('Review deleted successfully');
+        setTimeout(() => setReviewSuccess(''), 3000);
+        loadReviews();
+      } else {
+        setReviewSuccess('Failed to delete review');
+        setTimeout(() => setReviewSuccess(''), 3000);
+      }
+    } catch (err) {
+      console.warn('Failed to delete review', err);
+      setReviewSuccess('Failed to delete review');
+      setTimeout(() => setReviewSuccess(''), 3000);
+    }
+  };
+
   useEffect(() => {
+    // Get current user ID
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (rawUser) {
+        const u = JSON.parse(rawUser);
+        const userId = resolveUserId(u);
+        setCurrentUserId(userId);
+      }
+    } catch (e) {
+      const alt = localStorage.getItem('userId') || localStorage.getItem('user_id') || null;
+      if (alt) {
+        const maybe = String(alt).trim();
+        const userId = maybe === '' ? null : (Number(maybe).toString() === maybe ? Number(maybe) : maybe);
+        setCurrentUserId(userId);
+      }
+    }
+
     const fetchItem = async () => {
       try {
         if (menuId == null) {
@@ -79,14 +125,51 @@ const MenuItemDetail = () => {
       }
       };
       fetchItem();
-      // load reviews stored locally for this item
-      try { loadReviews(); } catch (e) { /* ignore */ }
+      // load reviews from API for this item
+      loadReviews();
     }, [menuId]);
 
   const submitReview = async (e) => {
     e.preventDefault();
     const { rating, comment } = reviewForm;
     if (!comment) return alert('Please provide a comment');
+
+    // If editing, call update endpoint
+    if (editingReview) {
+      try {
+        const updatePayload = {
+          rating: Number(rating) || 0,
+          comment: String(comment || ''),
+        };
+
+        console.log('Updating review:', editingReview.reviewid, updatePayload);
+
+        const res = await fetch(`http://localhost:8081/api/v2/updatereview/${editingReview.reviewid}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(updatePayload),
+        });
+
+        if (res.ok) {
+          setReviewSuccess('Review updated successfully');
+          setTimeout(() => setReviewSuccess(''), 3000);
+          loadReviews();
+        } else {
+          const txt = await res.text().catch(() => '');
+          console.warn('Update review failed:', res.status, txt);
+          setReviewSuccess('Failed to update review');
+          setTimeout(() => setReviewSuccess(''), 3000);
+        }
+      } catch (err) {
+        console.warn('Failed to update review', err);
+        setReviewSuccess('Failed to update review');
+        setTimeout(() => setReviewSuccess(''), 3000);
+      } finally {
+        setShowReviewModal(false);
+        setEditingReview(null);
+      }
+      return;
+    }
 
     // include logged-in user id when available (resolve multiple possible keys)
     let userId = null;
@@ -111,6 +194,7 @@ const MenuItemDetail = () => {
       name: 'Anonymous',
       rating: Number(rating) || 0,
       comment: String(comment || ''),
+      createdAt: new Date().toISOString(),
     };
 
     // Try POSTing to server; fall back to localStorage on failure
@@ -129,36 +213,22 @@ const MenuItemDetail = () => {
         // backend may return the saved review or a wrapper
         const data = await res.json().catch(() => null);
         console.log('Add review response (server):', data || 'no-json');
-        let saved = null;
-        if (data) {
-          // try common shapes
-          if (data.review) saved = data.review;
-          else if (Array.isArray(data) && data.length > 0) saved = data[0];
-          else if (typeof data === 'object') saved = data;
-        }
-
-        const r = saved && typeof saved === 'object'
-          ? ({ id: saved.id || Date.now(), name: saved.name || payload.name, rating: saved.rating || payload.rating, comment: saved.comment || payload.comment, date: saved.date || new Date().toISOString() })
-          : ({ id: Date.now(), name: payload.name, rating: payload.rating, comment: payload.comment, date: new Date().toISOString() });
-
-        saveReviews([r, ...reviews]);
         setReviewSuccess('Review added successfully');
         setTimeout(() => setReviewSuccess(''), 3000);
+        // Reload reviews from API
+        loadReviews();
       } else {
         const txt = await res.text().catch(() => '');
         console.warn('Add review failed:', res.status, txt);
         console.log('Server rejected review payload:', payload);
-        // fallback to local
-        const r = { id: Date.now(), name: payload.name, rating: payload.rating, comment: payload.comment, date: new Date().toISOString() };
-        saveReviews([r, ...reviews]);
-        setReviewSuccess('Review saved locally');
+        setReviewSuccess('Failed to add review');
         setTimeout(() => setReviewSuccess(''), 3000);
       }
     } catch (err) {
-      console.warn('Failed to post review, saving locally', err);
+      console.warn('Failed to post review', err);
       console.log('Review payload on network error:', payload);
-      const r = { id: Date.now(), name: payload.name, rating: payload.rating, comment: payload.comment, date: new Date().toISOString() };
-      saveReviews([r, ...reviews]);
+      setReviewSuccess('Failed to add review');
+      setTimeout(() => setReviewSuccess(''), 3000);
     } finally {
       setShowReviewModal(false);
     }
@@ -170,7 +240,7 @@ const MenuItemDetail = () => {
       <div className="modal-overlay" onClick={() => setShowReviewModal(false)}>
         <div className="modal-card" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <h3>Add Review</h3>
+            <h3>{editingReview ? 'Edit Review' : 'Add Review'}</h3>
             <button className="close-btn" onClick={() => setShowReviewModal(false)}>✕</button>
           </div>
           <form className="admin-form review-modal-form" onSubmit={submitReview} style={{padding: '8px 0'}}>
@@ -255,18 +325,29 @@ const MenuItemDetail = () => {
               {reviews.length === 0 && <p className="muted">No reviews yet. Be the first to review!</p>}
 
             <div className="reviews-list">
-              {reviews.map((r) => (
-                <div className="review-item" key={r.id}>
-                  <div className="review-meta">
-                    <div className="review-name">{r.name}</div>
-                    <div className="review-rating">{Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i} className={i < (r.rating||0) ? 'star filled' : 'star'}>★</span>
-                    ))}</div>
+              {reviews.map((r) => {
+                const reviewUserId = resolveUserId({ id: r.userId, _id: r.userId, userId: r.userId });
+                const isOwnReview = currentUserId && reviewUserId && String(currentUserId) === String(reviewUserId);
+                
+                return (
+                  <div className="review-item" key={r.id}>
+                    <div className="review-meta">
+                      <div className="review-name">{r.name}</div>
+                      <div className="review-rating">{Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} className={i < (r.rating||0) ? 'star filled' : 'star'}>★</span>
+                      ))}</div>
+                    </div>
+                    <div className="review-comment">{r.comment}</div>
+                    {r.date && !isNaN(new Date(r.date).getTime()) && <div className="review-date">{new Date(r.date).toLocaleString()}</div>}
+                    {isOwnReview && (
+                      <div className="review-actions">
+                        <button className="btn-review-action btn-edit" onClick={() => openEditReview(r)}>Edit</button>
+                        <button className="btn-review-action btn-delete" onClick={() => deleteReview(r.id)}>Delete</button>
+                      </div>
+                    )}
                   </div>
-                  <div className="review-comment">{r.comment}</div>
-                  <div className="review-date">{new Date(r.date).toLocaleString()}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

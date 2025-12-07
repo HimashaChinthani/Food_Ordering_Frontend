@@ -25,6 +25,12 @@
 .review-rating .star.filled{color:#f5b301}
 .review-comment{color:#334;line-height:1.4}
 .review-date{font-size:0.85rem;color:#889;margin-top:8px}
+.review-actions{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+.btn-review-action{padding:6px 12px;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
+.btn-edit{background:linear-gradient(90deg,#4a90e2,#357abd);color:#fff}
+.btn-edit:hover{background:linear-gradient(90deg,#357abd,#2563a6);transform:translateY(-1px);box-shadow:0 2px 8px rgba(74,144,226,0.3)}
+.btn-delete{background:linear-gradient(90deg,#e74c3c,#c0392b);color:#fff}
+.btn-delete:hover{background:linear-gradient(90deg,#c0392b,#a93226);transform:translateY(-1px);box-shadow:0 2px 8px rgba(231,76,60,0.3)}
 
 /* Modal tweaks for review popup */
 .modal-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:9999;background:linear-gradient(180deg, rgba(2,6,23,0.45), rgba(2,6,23,0.35));backdrop-filter: blur(6px);}
