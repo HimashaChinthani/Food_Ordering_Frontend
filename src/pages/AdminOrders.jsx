@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './AdminOrders.css';
 
 const API = 'http://localhost:8082/api/v3';
+const DRIVER_API = 'http://localhost:8080/api/v1';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -10,6 +11,11 @@ export default function AdminOrders() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [modalOrder, setModalOrder] = useState(null);
+  const [availableDrivers, setAvailableDrivers] = useState([]);
+  const [driversLoading, setDriversLoading] = useState(false);
+  const [driversError, setDriversError] = useState(null);
+  const [assignModalOrder, setAssignModalOrder] = useState(null);
+  const [assigningDriverId, setAssigningDriverId] = useState(null);
 
   const totalRevenue = useMemo(() => {
     return orders.reduce((s, o) => {
@@ -20,9 +26,45 @@ export default function AdminOrders() {
 
   const fmt = (n) => `₨${(Number(n)||0).toFixed(2)}`;
 
+  function getOrderId(order) {
+    if (!order) return '';
+    if (typeof order === 'string' || typeof order === 'number') return String(order).trim();
+    return String(order.orderId || order.id || order._id || order.order_id || '').trim();
+  }
+
+  function getDriverId(driver) {
+    if (!driver) return '';
+    if (typeof driver === 'string' || typeof driver === 'number') return String(driver).trim();
+    return String(driver.id || driver._id || driver.driverId || driver.driver_id || driver.userid || '').trim();
+  }
+
+  function getOrderDriverInfo(order) {
+    if (!order) return { name: '', vehicle: '', phone: '', vehicleType: '' };
+    const driverObj = order.driver || order.deliveryDriver || order.assignedDriver || {};
+    const name = order.assignedDriverName || order.driverName || driverObj.name || driverObj.fullName || driverObj.driverName || '';
+    const vehicle = order.assignedDriverVehicle || order.driverVehicleNumber || order.driverVehicle || driverObj.vehicleNumber || driverObj.vehicle_no || driverObj.vehicleNo || '';
+    const vehicleType = order.assignedDriverVehicleType || order.driverVehicleType || driverObj.vehicleType || driverObj.vehicle_type || '';
+    const phone = order.assignedDriverPhone || order.driverPhoneNumber || driverObj.phoneNumber || driverObj.phone || '';
+    return { name, vehicle, phone, vehicleType };
+  }
+
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+    loadAvailableDrivers();
+  }, []);
+
+  useEffect(() => {
+    if (!modalOrder) return;
+    const id = getOrderId(modalOrder);
+    if (!id) return;
+    const updated = orders.find((o) => getOrderId(o) === id);
+    if (updated && updated !== modalOrder) {
+      setModalOrder(updated);
+    }
+  }, [orders, modalOrder]);
 
   async function loadOrders() {
     setLoading(true);
@@ -46,6 +88,152 @@ export default function AdminOrders() {
       setLoading(false);
     }
   }
+
+  async function loadAvailableDrivers() {
+    setDriversLoading(true);
+    setDriversError(null);
+    try {
+      const res = await fetch(`${DRIVER_API}/getdrivers`, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`Driver service ${res.status}`);
+      const data = await res.json();
+      const arr = Array.isArray(data)
+        ? data
+        : (data.drivers && Array.isArray(data.drivers))
+          ? data.drivers
+          : (data.data && Array.isArray(data.data))
+            ? data.data
+            : [];
+      const normalized = arr.map((d) => {
+        const id = getDriverId(d);
+        return {
+          ...d,
+          id,
+          name: d?.name || d?.fullName || d?.driverName || '',
+          phoneNumber: d?.phoneNumber || d?.phone || '',
+          vehicleNumber: d?.vehicleNumber || d?.vehicle_no || d?.vehicleNo || '',
+          vehicleType: d?.vehicleType || d?.vehicle_type || '',
+          status: (d?.status || 'AVAILABLE').toUpperCase(),
+        };
+      });
+      const availableOnly = normalized.filter((d) => (d.status || '').toUpperCase() === 'AVAILABLE');
+      setAvailableDrivers(availableOnly);
+    } catch (err) {
+      console.warn('Failed to load available drivers', err);
+      setDriversError('Failed to load drivers');
+      setAvailableDrivers([]);
+    } finally {
+      setDriversLoading(false);
+    }
+  }
+
+  const openAssignModal = (order) => {
+    setAssignModalOrder(order);
+    loadAvailableDrivers();
+  };
+
+  const closeAssignModal = () => {
+    if (assigningDriverId) return;
+    setAssignModalOrder(null);
+  };
+
+  const assignDriverToOrder = async (order, driver) => {
+    const orderId = getOrderId(order);
+    const driverId = getDriverId(driver);
+    if (!orderId) {
+      alert('Order id not found.');
+      return;
+    }
+    if (!driverId) {
+      alert('Driver id not found.');
+      return;
+    }
+
+    setAssigningDriverId(driverId);
+    try {
+      const payload = {
+        orderId,
+        driverId,
+        driverName: driver.name || '',
+        driverEmail: driver.email || '',
+        driverPhoneNumber: driver.phoneNumber || '',
+        driverVehicleNumber: driver.vehicleNumber || '',
+        driverVehicleType: driver.vehicleType || '',
+      };
+
+      const orderEndpoints = [
+        `${API}/orders/${encodeURIComponent(orderId)}/assign-driver`,
+        `${API}/assign-driver/${encodeURIComponent(orderId)}`,
+      ];
+
+      let orderRes = null;
+      for (const url of orderEndpoints) {
+        try {
+          orderRes = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } catch (err) {
+          console.warn('Assign driver request failed', url, err);
+          continue;
+        }
+        if (orderRes && orderRes.ok) break;
+      }
+
+      if (!orderRes || !orderRes.ok) {
+        orderRes = await fetch(`${API}/assign-driver`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!orderRes || !orderRes.ok) {
+        const txt = orderRes && typeof orderRes.text === 'function' ? await orderRes.text().catch(() => '') : '';
+        throw new Error(txt || `Assign driver failed (${orderRes ? orderRes.status : 'no response'})`);
+      }
+
+      let driverRes = await fetch(`${DRIVER_API}/updatedriver/${encodeURIComponent(driverId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ status: 'ON_DELIVERY' }),
+      });
+      if (!driverRes.ok) {
+        driverRes = await fetch(`${DRIVER_API}/updatedriver`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ id: driverId, status: 'ON_DELIVERY' }),
+        });
+      }
+      if (!driverRes.ok) {
+        const txt = await driverRes.text().catch(() => '');
+        console.warn('Driver status update failed', txt);
+      }
+
+      setOrders((prev) => prev.map((o) => {
+        if (getOrderId(o) !== orderId) return o;
+        return {
+          ...o,
+          assignedDriverId: driverId,
+          assignedDriverName: driver.name || '',
+          assignedDriverPhone: driver.phoneNumber || '',
+          assignedDriverVehicle: driver.vehicleNumber || '',
+          assignedDriverVehicleType: driver.vehicleType || '',
+        };
+      }));
+
+      setAvailableDrivers((prev) => prev.filter((d) => getDriverId(d) !== driverId));
+
+      setAssignModalOrder(null);
+      loadOrders();
+      loadAvailableDrivers();
+    } catch (err) {
+      console.error('Failed to assign driver', err);
+      alert(err.message || 'Failed to assign driver');
+    } finally {
+      setAssigningDriverId(null);
+    }
+  };
 
   async function deleteOrderByIdAdmin(id) {
     if (!id) return;
@@ -156,15 +344,23 @@ export default function AdminOrders() {
       <section className="orders-grid">
         {statusFiltered.map((o) => {
           const id = o.orderId || o.id || o._id || '';
+          const orderKey = getOrderId(o) || id;
           const date = new Date(o.orderDate || o.createdAt || Date.now()).toLocaleString();
           let items = [];
           try { items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch (e) { items = []; }
           const total = parseFloat(o.totalAmount || o.total || 0) || 0;
+          const orderDriver = getOrderDriverInfo(o);
+          const assignedDriverName = orderDriver.name;
+          const assignedDriverVehicle = orderDriver.vehicle;
+          const assignedDriverPhone = orderDriver.phone;
+          const assignedDriverVehicleType = orderDriver.vehicleType;
+          const statusNormalized = ((o.status || '') + '').toLowerCase();
+          const isCompleted = statusNormalized.includes('completed');
 
           return (
             <article
               className="order-card"
-              key={id || Math.random()}
+              key={orderKey || Math.random()}
               role="button"
               tabIndex={0}
               onClick={() => setModalOrder(o)}
@@ -181,7 +377,39 @@ export default function AdminOrders() {
                   <div className={`status ${((o.status||'pending')+'').toLowerCase()}`}>{o.status || 'PENDING'}</div>
                   <div className="order-date">{date}</div>
                   <div className="order-total">{fmt(total)}</div>
-                    {((o.status||'')+'' ).toLowerCase().includes('completed') && (
+                  {assignedDriverName ? (
+                    <div className="assigned-driver" onClick={(e) => e.stopPropagation()}>
+                      <div className="assigned-driver-label">Driver</div>
+                      <div className="assigned-driver-name">{assignedDriverName}</div>
+                      <div className="assigned-driver-meta">
+                        {assignedDriverVehicle || 'Vehicle N/A'}
+                        {assignedDriverVehicleType ? ` · ${assignedDriverVehicleType}` : ''}
+                      </div>
+                      {assignedDriverPhone && <div className="assigned-driver-meta">{assignedDriverPhone}</div>}
+                      {isCompleted && (
+                        <button
+                          className="btn outline small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAssignModal(o);
+                          }}
+                        >
+                          Reassign
+                        </button>
+                      )}
+                    </div>
+                  ) : (!assignedDriverName && isCompleted && (
+                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="btn outline small"
+                        onClick={() => openAssignModal(o)}
+                        disabled={driversLoading || availableDrivers.length === 0}
+                      >
+                        {driversLoading ? 'Loading...' : 'Assign Driver'}
+                      </button>
+                    </div>
+                  ))}
+                    {isCompleted && (
                       <div style={{ marginTop: 8 }}>
                         <button
                           className="btn danger"
@@ -229,6 +457,53 @@ export default function AdminOrders() {
         })}
       </section>
 
+      {assignModalOrder && (
+        <div className="modal-overlay" onClick={closeAssignModal}>
+          <div className="modal-card driver-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Assign Driver — #{getOrderId(assignModalOrder)}</h3>
+              <button className="close-btn" onClick={closeAssignModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              {driversError && <div className="assign-driver-feedback error">{driversError}</div>}
+              {driversLoading && <p className="muted">Loading available drivers...</p>}
+              {!driversLoading && availableDrivers.length === 0 && !driversError && (
+                <div className="assign-driver-empty">
+                  <h4>No available drivers</h4>
+                  <p className="muted">All drivers are currently busy. Try refreshing once a driver becomes available.</p>
+                </div>
+              )}
+              {!driversLoading && availableDrivers.length > 0 && (
+                <div className="drivers-list">
+                  {availableDrivers.map((driver) => {
+                    const driverId = getDriverId(driver);
+                    return (
+                      <div className="driver-row" key={driverId || driver.email || driver.name}>
+                        <div className="driver-info">
+                          <div className="driver-name">{driver.name || 'Driver'}</div>
+                          <div className="driver-meta">{driver.vehicleNumber || 'Vehicle N/A'}{driver.vehicleType ? ` · ${driver.vehicleType}` : ''}</div>
+                          {driver.phoneNumber && <div className="driver-meta">{driver.phoneNumber}</div>}
+                        </div>
+                        <button
+                          className="btn primary small"
+                          onClick={() => assignDriverToOrder(assignModalOrder, driver)}
+                          disabled={assigningDriverId === driverId}
+                        >
+                          {assigningDriverId === driverId ? 'Assigning...' : 'Assign'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button className="btn outline" onClick={closeAssignModal} disabled={Boolean(assigningDriverId)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modalOrder && (
         <div className="modal-overlay" onClick={() => setModalOrder(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -240,6 +515,13 @@ export default function AdminOrders() {
               <div className="modal-row"><strong>Customer:</strong> {modalOrder.customerName || modalOrder.customer_name || (modalOrder.customer && modalOrder.customer.name) || 'Guest'}</div>
               <div className="modal-row"><strong>Email:</strong> {modalOrder.customerEmail || modalOrder.customer_email || (modalOrder.customer && modalOrder.customer.email) || ''}</div>
               <div className="modal-row"><strong>Status:</strong> <span className={`status ${((modalOrder.status||'pending')+'').toLowerCase()}`}>{modalOrder.status || 'PENDING'}</span></div>
+              {(() => {
+                const driverInfo = getOrderDriverInfo(modalOrder);
+                if (!driverInfo.name && !driverInfo.vehicle) return null;
+                return (
+                  <div className="modal-row"><strong>Driver:</strong> {driverInfo.name || 'Assigned'}{driverInfo.vehicle ? ` — ${driverInfo.vehicle}` : ''}{driverInfo.vehicleType ? ` (${driverInfo.vehicleType})` : ''}{driverInfo.phone ? ` · ${driverInfo.phone}` : ''}</div>
+                );
+              })()}
               <div className="modal-row"><strong>Items:</strong></div>
               <div className="modal-items">
                 <table>
