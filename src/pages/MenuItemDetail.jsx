@@ -28,6 +28,15 @@ const MenuItemDetail = () => {
     return id === '' ? null : (Number(id).toString() === id ? Number(id) : id);
   }
 
+  function resolveReviewId(r) {
+    if (!r) return null;
+    const raw = r.reviewId ?? r.reviewid ?? r.id ?? r._id ?? r.review_id ?? null;
+    if (raw == null) return null;
+    const str = String(raw).trim();
+    if (!str) return null;
+    return Number(str).toString() === str ? Number(str) : str;
+  }
+
   function loadReviews() {
     if (!menuId) return;
     try {
@@ -54,16 +63,29 @@ const MenuItemDetail = () => {
   };
 
   const openEditReview = (review) => {
-    setEditingReview(review);
+    const resolvedId = resolveReviewId(review);
+    if (!resolvedId) {
+      console.warn('Could not resolve review id for editing', review);
+      alert('Unable to edit this review because its id is missing.');
+      return;
+    }
+    setEditingReview({ ...review, _resolvedId: resolvedId });
     setReviewForm({ rating: review.rating || 5, comment: review.comment || '' });
     setShowReviewModal(true);
   };
 
   const deleteReview = async (reviewId) => {
     if (!window.confirm('Are you sure you want to delete this review?')) return;
+
+    const resolvedId = resolveReviewId({ reviewId, id: reviewId }) ?? reviewId;
+    if (resolvedId == null || String(resolvedId).trim() === '') {
+      alert('Review id missing, cannot delete.');
+      console.warn('Attempted to delete review with invalid id', reviewId);
+      return;
+    }
     
     try {
-      const res = await fetch(`http://localhost:8081/api/v2/deletereview/${reviewId}`, {
+      const res = await fetch(`${API}/deletreview/${encodeURIComponent(resolvedId)}`, {
         method: 'DELETE',
       });
 
@@ -137,14 +159,20 @@ const MenuItemDetail = () => {
     // If editing, call update endpoint
     if (editingReview) {
       try {
+        const reviewId = resolveReviewId(editingReview) ?? editingReview?._resolvedId ?? null;
+        if (!reviewId) {
+          alert('Review id missing, cannot update.');
+          return;
+        }
+
         const updatePayload = {
           rating: Number(rating) || 0,
           comment: String(comment || ''),
         };
 
-        console.log('Updating review:', editingReview.reviewid, updatePayload);
+        console.log('Updating review:', reviewId, updatePayload);
 
-        const res = await fetch(`http://localhost:8081/api/v2/updatereview/${editingReview.reviewid}`, {
+        const res = await fetch(`http://localhost:8081/api/v2/updatereview/${encodeURIComponent(reviewId)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(updatePayload),
@@ -325,12 +353,13 @@ const MenuItemDetail = () => {
               {reviews.length === 0 && <p className="muted">No reviews yet. Be the first to review!</p>}
 
             <div className="reviews-list">
-              {reviews.map((r) => {
-                const reviewUserId = resolveUserId({ id: r.userId, _id: r.userId, userId: r.userId });
+              {reviews.map((r, idx) => {
+                const reviewUserId = resolveUserId({ id: r.userId, _id: r.userId, userId: r.userId, userid: r.userId, user_id: r.userId });
+                const reviewId = resolveReviewId(r);
                 const isOwnReview = currentUserId && reviewUserId && String(currentUserId) === String(reviewUserId);
                 
                 return (
-                  <div className="review-item" key={r.id}>
+                  <div className="review-item" key={reviewId ?? `review-${idx}`}>
                     <div className="review-meta">
                       <div className="review-name">{r.name}</div>
                       <div className="review-rating">{Array.from({ length: 5 }).map((_, i) => (
@@ -342,7 +371,17 @@ const MenuItemDetail = () => {
                     {isOwnReview && (
                       <div className="review-actions">
                         <button className="btn-review-action btn-edit" onClick={() => openEditReview(r)}>Edit</button>
-                        <button className="btn-review-action btn-delete" onClick={() => deleteReview(r.id)}>Delete</button>
+                        <button
+                          className="btn-review-action btn-delete"
+                          onClick={() => {
+                            if (!reviewId) {
+                              alert('Review id missing, cannot delete this review.');
+                              console.warn('Missing review id for delete', r);
+                              return;
+                            }
+                            deleteReview(reviewId);
+                          }}
+                        >Delete</button>
                       </div>
                     )}
                   </div>
