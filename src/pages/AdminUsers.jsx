@@ -9,6 +9,24 @@ export default function AdminUsers() {
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [drivers, setDrivers] = useState([]);
+  const [driversLoading, setDriversLoading] = useState(false);
+  const [driversError, setDriversError] = useState(null);
+  const [driverDeletingId, setDriverDeletingId] = useState(null);
+  const initialDriverForm = {
+    name: '',
+    email: '',
+    password: '',
+    phoneNumber: '',
+    vehicleNumber: '',
+    vehicleType: '',
+    status: 'AVAILABLE',
+  };
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [driverForm, setDriverForm] = useState(initialDriverForm);
+  const [driverSaving, setDriverSaving] = useState(false);
+  const [driverFeedback, setDriverFeedback] = useState({ type: '', message: '' });
+  const [editingDriver, setEditingDriver] = useState(null);
 
   // Load users from backend
   useEffect(() => {
@@ -38,6 +56,40 @@ export default function AdminUsers() {
     load();
   }, []);
 
+  useEffect(() => {
+    loadDrivers();
+  }, []);
+
+  const loadDrivers = async () => {
+    setDriversLoading(true);
+    setDriversError(null);
+    try {
+      const res = await fetch(`${API}/getdrivers`, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error('Failed to fetch drivers');
+      const json = await res.json();
+      const normalized = (Array.isArray(json) ? json : []).map((d) => {
+        const id = String(d?._id ?? d?.id ?? d?.driverId ?? d?.driver_id ?? d?.userid ?? '').trim() || null;
+        return {
+          ...d,
+          id,
+          phoneNumber: d?.phoneNumber ?? d?.phone ?? '',
+          vehicleNumber: d?.vehicleNumber ?? d?.vehicle_no ?? '',
+          vehicleType: d?.vehicleType ?? d?.vehicle_type ?? '',
+          status: (d?.status || 'AVAILABLE').toUpperCase(),
+        };
+      });
+      // eslint-disable-next-line no-console
+      console.log('AdminUsers: fetched drivers', normalized);
+      setDrivers(normalized);
+    } catch (err) {
+      console.warn('Failed to load drivers', err);
+      setDriversError('Failed to load drivers');
+      setDrivers([]);
+    } finally {
+      setDriversLoading(false);
+    }
+  };
+
   // Filter users by search query
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -58,6 +110,138 @@ export default function AdminUsers() {
     if (typeof u === 'string' || typeof u === 'number') return String(u).trim();
     const candidate = u?._id ?? u?.id ?? u?.userId ?? u?.userid ?? u?.user_id ?? u?.uid ?? '';
     return String(candidate).trim();
+  };
+
+  const openDriverModal = (driver = null) => {
+    if (driver) {
+      setEditingDriver(driver);
+      setDriverForm({
+        name: driver.name || '',
+        email: driver.email || '',
+        password: '',
+        phoneNumber: driver.phoneNumber || '',
+        vehicleNumber: driver.vehicleNumber || '',
+        vehicleType: driver.vehicleType || '',
+        status: (driver.status || 'AVAILABLE').toUpperCase(),
+      });
+    } else {
+      setEditingDriver(null);
+      setDriverForm(initialDriverForm);
+    }
+    setDriverFeedback({ type: '', message: '' });
+    setShowDriverModal(true);
+  };
+
+  const closeDriverModal = () => {
+    if (driverSaving) return;
+    setShowDriverModal(false);
+    setDriverFeedback({ type: '', message: '' });
+    setEditingDriver(null);
+  };
+
+  const handleDriverFieldChange = (field) => (e) => {
+    const value = e.target.value;
+    setDriverForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const submitDriver = async (e) => {
+    e.preventDefault();
+    setDriverSaving(true);
+    setDriverFeedback({ type: '', message: '' });
+    try {
+      const payload = {
+        name: driverForm.name,
+        email: driverForm.email,
+        password: driverForm.password,
+        phoneNumber: driverForm.phoneNumber,
+        vehicleNumber: driverForm.vehicleNumber,
+        vehicleType: driverForm.vehicleType,
+        status: driverForm.status,
+      };
+
+      let res;
+      if (editingDriver) {
+        const driverId = getDriverId(editingDriver);
+        if (!driverId) throw new Error('Driver id not found for update');
+        const filteredPayload = { ...payload };
+        if (!filteredPayload.password) delete filteredPayload.password;
+        const bodyWithId = { id: driverId, ...filteredPayload };
+        res = await fetch(`${API}/updatedriver`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(bodyWithId),
+        });
+        if (!res.ok) {
+          res = await fetch(`${API}/updatedriver/${encodeURIComponent(driverId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(filteredPayload),
+          });
+        }
+      } else {
+        res = await fetch(`${API}/adddrivers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(txt || `Server responded ${res.status}`);
+      }
+
+      setDriverFeedback({ type: 'success', message: editingDriver ? 'Driver updated successfully' : 'Driver added successfully' });
+      setDriverForm(initialDriverForm);
+      await loadDrivers();
+      setTimeout(() => {
+        closeDriverModal();
+      }, 1200);
+    } catch (err) {
+      console.warn('Failed to add driver', err);
+      setDriverFeedback({ type: 'error', message: err.message || `Failed to ${editingDriver ? 'update' : 'add'} driver` });
+    } finally {
+      setDriverSaving(false);
+    }
+  };
+
+  const getDriverId = (driver) => {
+    if (!driver) return '';
+    if (typeof driver === 'string' || typeof driver === 'number') return String(driver).trim();
+    return String(driver?.id ?? driver?._id ?? driver?.driverId ?? driver?.driver_id ?? '').trim();
+  };
+
+  const deleteDriver = async (driver) => {
+    const id = getDriverId(driver);
+    if (!id) {
+      alert('Driver id not found');
+      return;
+    }
+    if (!window.confirm('Delete this driver?')) return;
+
+    setDriverDeletingId(id);
+    try {
+      let res = await fetch(`${API}/deletedriver/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        res = await fetch(`${API}/deletedriver`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+      }
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(txt || `Delete failed (${res.status})`);
+      }
+      setDriverFeedback({ type: 'success', message: 'Driver deleted successfully' });
+      await loadDrivers();
+      setTimeout(() => setDriverFeedback({ type: '', message: '' }), 2000);
+    } catch (err) {
+      console.warn('Failed to delete driver', err);
+      setDriverFeedback({ type: 'error', message: err.message || 'Failed to delete driver' });
+    } finally {
+      setDriverDeletingId(null);
+    }
   };
 
   // Handle user deletion. Accepts either a user object or an id.
@@ -134,6 +318,7 @@ export default function AdminUsers() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          <button className="btn primary" onClick={openDriverModal}>Add Driver</button>
         </div>
       </header>
 
@@ -194,6 +379,140 @@ export default function AdminUsers() {
           </div>
         )}
       </section>
+
+      <section className="users-list" style={{ marginTop: 32 }}>
+        <div className="drivers-header">
+          <h3>Drivers</h3>
+          <p className="muted">Manage delivery drivers</p>
+        </div>
+
+        {driversLoading && <div className="notice">Loading drivers...</div>}
+        {driversError && <div className="notice error">{driversError}</div>}
+        {driverFeedback.message && !showDriverModal && (
+          <div className={`notice ${driverFeedback.type === 'error' ? 'error' : ''}`}>{driverFeedback.message}</div>
+        )}
+        {!driversLoading && drivers.length === 0 && !driversError && (
+          <div className="notice">No drivers found.</div>
+        )}
+
+        {drivers.length > 0 && (
+          <div className="table-wrap">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Driver</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Vehicle</th>
+                  <th>Status</th>
+                  <th style={{ width: 160 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {drivers.map((driver, idx) => (
+                  <tr key={getDriverId(driver) || idx}>
+                    <td className="idx">{idx + 1}</td>
+                    <td>
+                      <div className="user-cell">
+                        <div className="avatar">
+                          <div className="initial">{(driver.name || 'D').charAt(0).toUpperCase()}</div>
+                        </div>
+                        <div className="user-meta">
+                          <div className="name">{driver.name || '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="email-col">{driver.email || '—'}</td>
+                    <td className="email-col">{driver.phoneNumber || '—'}</td>
+                    <td className="email-col">{driver.vehicleNumber || '—'}<div className="driver-vehicle-type">{driver.vehicleType || ''}</div></td>
+                    <td>
+                      <span className={`role-badge driver ${String(driver.status || 'AVAILABLE').toLowerCase()}`}>
+                        {String(driver.status || 'AVAILABLE').replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="user-actions" style={{ gap: 8 }}>
+                      <button className="btn outline small" onClick={() => openDriverModal(driver)}>Edit</button>
+                      <button
+                        className="btn danger small action-btn"
+                        onClick={() => deleteDriver(driver)}
+                        disabled={driverDeletingId === getDriverId(driver)}
+                      >
+                        {driverDeletingId === getDriverId(driver) ? 'Removing...' : 'Delete'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {showDriverModal && (
+        <div className="admin-users-modal-overlay" onClick={closeDriverModal}>
+          <div className="admin-users-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{editingDriver ? 'Edit Driver' : 'Add Driver'}</h3>
+            {driverFeedback.message && (
+              <div className={`modal-feedback ${driverFeedback.type}`}>{driverFeedback.message}</div>
+            )}
+            <form className="modal-grid" onSubmit={submitDriver}>
+              <div className="modal-group">
+                <label>Name</label>
+                <input value={driverForm.name} onChange={handleDriverFieldChange('name')} required />
+              </div>
+              <div className="modal-group">
+                <label>Email</label>
+                <input type="email" value={driverForm.email} onChange={handleDriverFieldChange('email')} required />
+              </div>
+              <div className="modal-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={driverForm.password}
+                  onChange={handleDriverFieldChange('password')}
+                  required={!editingDriver}
+                  placeholder={editingDriver ? 'Leave blank to keep current password' : ''}
+                />
+              </div>
+              <div className="modal-group">
+                <label>Phone Number</label>
+                <input value={driverForm.phoneNumber} onChange={handleDriverFieldChange('phoneNumber')} required />
+              </div>
+              <div className="modal-group">
+                <label>Vehicle Number</label>
+                <input value={driverForm.vehicleNumber} onChange={handleDriverFieldChange('vehicleNumber')} required />
+              </div>
+              <div className="modal-group">
+                <label>Vehicle Type</label>
+                <select value={driverForm.vehicleType} onChange={handleDriverFieldChange('vehicleType')} required>
+                  <option value="">Select vehicle type</option>
+                  <option value="Bike">Bike</option>
+                  <option value="Scooter">Scooter</option>
+                  <option value="Car">Car</option>
+                  <option value="Van">Van</option>
+                  <option value="Truck">Truck</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="modal-group">
+                <label>Status</label>
+                <select value={driverForm.status} onChange={handleDriverFieldChange('status')} required>
+                  <option value="AVAILABLE">AVAILABLE</option>
+                  <option value="ON_DELIVERY">ON_DELIVERY</option>
+                  <option value="INACTIVE">INACTIVE</option>
+                </select>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn outline" onClick={closeDriverModal} disabled={driverSaving}>Cancel</button>
+                <button type="submit" className="btn primary" disabled={driverSaving}>
+                  {driverSaving ? 'Saving...' : editingDriver ? 'Update Driver' : 'Save Driver'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
