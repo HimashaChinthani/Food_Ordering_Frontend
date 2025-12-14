@@ -28,7 +28,6 @@ export default function AdminUsers() {
   const [driverFeedback, setDriverFeedback] = useState({ type: '', message: '' });
   const [editingDriver, setEditingDriver] = useState(null);
 
-  // Load users from backend
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -37,12 +36,10 @@ export default function AdminUsers() {
         const res = await fetch(`${API}/getusers`);
         if (!res.ok) throw new Error('Failed to fetch users');
         const json = await res.json();
-        // normalize id into a single `id` field for the UI
         const normalized = (Array.isArray(json) ? json : []).map((u) => {
           const id = String(u?._id ?? u?.id ?? u?.userId ?? u?.userid ?? u?.user_id ?? u?.uid ?? '').trim() || null;
           return { ...u, id };
         });
-        // debug: show fetched users (open console to inspect)
         // eslint-disable-next-line no-console
         console.log('AdminUsers: fetched users', normalized);
         setUsers(normalized);
@@ -113,20 +110,21 @@ export default function AdminUsers() {
   };
 
   const openDriverModal = (driver = null) => {
-    if (driver) {
-      setEditingDriver(driver);
+    const nextEditing = driver ? driver : null;
+    setEditingDriver(nextEditing);
+
+    if (nextEditing) {
       setDriverForm({
-        name: driver.name || '',
-        email: driver.email || '',
+        name: nextEditing.name || '',
+        email: nextEditing.email || '',
         password: '',
-        phoneNumber: driver.phoneNumber || '',
-        vehicleNumber: driver.vehicleNumber || '',
-        vehicleType: driver.vehicleType || '',
-        status: (driver.status || 'AVAILABLE').toUpperCase(),
+        phoneNumber: nextEditing.phoneNumber || '',
+        vehicleNumber: nextEditing.vehicleNumber || '',
+        vehicleType: nextEditing.vehicleType || '',
+        status: (nextEditing.status || 'AVAILABLE').toUpperCase(),
       });
     } else {
-      setEditingDriver(null);
-      setDriverForm(initialDriverForm);
+      setDriverForm({ ...initialDriverForm });
     }
     setDriverFeedback({ type: '', message: '' });
     setShowDriverModal(true);
@@ -137,6 +135,7 @@ export default function AdminUsers() {
     setShowDriverModal(false);
     setDriverFeedback({ type: '', message: '' });
     setEditingDriver(null);
+    setDriverForm({ ...initialDriverForm });
   };
 
   const handleDriverFieldChange = (field) => (e) => {
@@ -148,6 +147,16 @@ export default function AdminUsers() {
     e.preventDefault();
     setDriverSaving(true);
     setDriverFeedback({ type: '', message: '' });
+
+    const editingTargetId = editingDriver ? getDriverId(editingDriver) : '';
+    const isUpdate = Boolean(editingDriver && editingTargetId);
+
+    if (editingDriver && !isUpdate) {
+      // eslint-disable-next-line no-console
+      console.warn('Driver edit missing identifier; falling back to add flow');
+      setEditingDriver(null);
+    }
+
     try {
       const payload = {
         name: driverForm.name,
@@ -159,24 +168,45 @@ export default function AdminUsers() {
         status: driverForm.status,
       };
 
-      let res;
-      if (editingDriver) {
-        const driverId = getDriverId(editingDriver);
-        if (!driverId) throw new Error('Driver id not found for update');
+      let res = null;
+
+      if (isUpdate) {
         const filteredPayload = { ...payload };
         if (!filteredPayload.password) delete filteredPayload.password;
-        const bodyWithId = { id: driverId, ...filteredPayload };
-        res = await fetch(`${API}/updatedriver`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(bodyWithId),
-        });
-        if (!res.ok) {
-          res = await fetch(`${API}/updatedriver/${encodeURIComponent(driverId)}`, {
+
+        const attempts = [
+          {
+            url: `${API}/updatedriver/${encodeURIComponent(editingTargetId)}`,
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify(filteredPayload),
-          });
+          },
+          {
+            url: `${API}/updatedriver`,
+            method: 'PUT',
+            body: JSON.stringify({ id: editingTargetId, ...filteredPayload }),
+          },
+          {
+            url: `${API}/updatedriver`,
+            method: 'POST',
+            body: JSON.stringify({ id: editingTargetId, ...filteredPayload }),
+          },
+        ];
+
+        for (const attempt of attempts) {
+          try {
+            const response = await fetch(attempt.url, {
+              method: attempt.method,
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: attempt.body,
+            });
+            if (response.ok) {
+              res = response;
+              break;
+            }
+            res = response;
+          } catch (err) {
+            console.warn('Driver update attempt failed', attempt.url, err);
+          }
         }
       } else {
         res = await fetch(`${API}/adddrivers`, {
@@ -186,20 +216,20 @@ export default function AdminUsers() {
         });
       }
 
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(txt || `Server responded ${res.status}`);
+      if (!res || !res.ok) {
+        const txt = await res?.text?.().catch(() => '') ?? '';
+        throw new Error(txt || `Failed to ${isUpdate ? 'update' : 'add'} driver`);
       }
 
-      setDriverFeedback({ type: 'success', message: editingDriver ? 'Driver updated successfully' : 'Driver added successfully' });
-      setDriverForm(initialDriverForm);
+      setDriverFeedback({ type: 'success', message: isUpdate ? 'Driver updated successfully' : 'Driver added successfully' });
+      setDriverForm({ ...initialDriverForm });
       await loadDrivers();
       setTimeout(() => {
         closeDriverModal();
       }, 1200);
     } catch (err) {
-      console.warn('Failed to add driver', err);
-      setDriverFeedback({ type: 'error', message: err.message || `Failed to ${editingDriver ? 'update' : 'add'} driver` });
+      console.warn('Driver save failed', err);
+      setDriverFeedback({ type: 'error', message: err.message || `Failed to ${isUpdate ? 'update' : 'add'} driver` });
     } finally {
       setDriverSaving(false);
     }
