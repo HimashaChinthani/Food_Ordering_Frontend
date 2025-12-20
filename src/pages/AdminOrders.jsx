@@ -66,6 +66,48 @@ export default function AdminOrders() {
     }
   }, [orders, modalOrder]);
 
+  // Enrich orders with assigned driver data from /getassigndrivers/{orderId}
+  async function enrichOrdersWithAssignedDrivers(list) {
+    if (!Array.isArray(list) || list.length === 0) return list;
+    try {
+      const enriched = await Promise.all(list.map(async (o) => {
+        const id = getOrderId(o);
+        if (!id) return o;
+        try {
+          const res = await fetch(`${API}/getassigndrivers/${encodeURIComponent(id)}`, {
+            headers: { Accept: 'application/json' },
+          });
+          if (!res.ok) return o;
+          const dto = await res.json();
+          if (!dto) return o;
+
+          const driverCore = dto.driver || dto.driverInfo || dto;
+          const driverId = getDriverId(driverCore);
+          const name = dto.driverName || driverCore.name || driverCore.fullName || driverCore.driverName || '';
+          const phone = dto.driverPhoneNumber || dto.phoneNumber || driverCore.phoneNumber || driverCore.phone || '';
+          const vehicle = dto.driverVehicleNumber || dto.vehicleNumber || driverCore.vehicleNumber || driverCore.vehicle_no || driverCore.vehicleNo || '';
+          const vehicleType = dto.driverVehicleType || dto.vehicleType || driverCore.vehicleType || driverCore.vehicle_type || '';
+
+          return {
+            ...o,
+            assignedDriverId: driverId || o.assignedDriverId,
+            assignedDriverName: name || o.assignedDriverName,
+            assignedDriverPhone: phone || o.assignedDriverPhone,
+            assignedDriverVehicle: vehicle || o.assignedDriverVehicle,
+            assignedDriverVehicleType: vehicleType || o.assignedDriverVehicleType,
+          };
+        } catch (err) {
+          console.warn('Failed to load assigned driver for order', id, err);
+          return o;
+        }
+      }));
+      return enriched;
+    } catch (e) {
+      console.warn('Failed to enrich orders with assigned drivers', e);
+      return list;
+    }
+  }
+
   async function loadOrders() {
     setLoading(true);
     setError(null);
@@ -80,7 +122,8 @@ export default function AdminOrders() {
         const db = new Date(b.orderDate || b.createdAt || b.created_at || 0).getTime() || 0;
         return db - da;
       });
-      setOrders(sorted);
+      const enriched = await enrichOrdersWithAssignedDrivers(sorted);
+      setOrders(enriched);
     } catch (err) {
       console.error('Failed to load orders', err);
       setError('Failed to load orders');
@@ -150,47 +193,19 @@ export default function AdminOrders() {
 
     setAssigningDriverId(driverId);
     try {
-      const payload = {
-        orderId,
-        driverId,
-        driverName: driver.name || '',
-        driverEmail: driver.email || '',
-        driverPhoneNumber: driver.phoneNumber || '',
-        driverVehicleNumber: driver.vehicleNumber || '',
-        driverVehicleType: driver.vehicleType || '',
-      };
+      // Backend DriverAssignmentController: POST /api/v3/assigndriver/{orderId}
+      // with body AssignDriverRequest { driverId }
+      const payload = { driverId };
 
-      const orderEndpoints = [
-        `${API}/orders/${encodeURIComponent(orderId)}/assign-driver`,
-        `${API}/assign-driver/${encodeURIComponent(orderId)}`,
-      ];
+      const orderRes = await fetch(`${API}/assigndriver/${encodeURIComponent(orderId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-      let orderRes = null;
-      for (const url of orderEndpoints) {
-        try {
-          orderRes = await fetch(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify(payload),
-          });
-        } catch (err) {
-          console.warn('Assign driver request failed', url, err);
-          continue;
-        }
-        if (orderRes && orderRes.ok) break;
-      }
-
-      if (!orderRes || !orderRes.ok) {
-        orderRes = await fetch(`${API}/assign-driver`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      if (!orderRes || !orderRes.ok) {
-        const txt = orderRes && typeof orderRes.text === 'function' ? await orderRes.text().catch(() => '') : '';
-        throw new Error(txt || `Assign driver failed (${orderRes ? orderRes.status : 'no response'})`);
+      if (!orderRes.ok) {
+        const txt = typeof orderRes.text === 'function' ? await orderRes.text().catch(() => '') : '';
+        throw new Error(txt || `Assign driver failed (${orderRes.status})`);
       }
 
       let driverRes = await fetch(`${DRIVER_API}/updatedriver/${encodeURIComponent(driverId)}`, {
