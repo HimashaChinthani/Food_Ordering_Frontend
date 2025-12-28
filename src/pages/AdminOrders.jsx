@@ -370,7 +370,10 @@ export default function AdminOrders() {
           const assignedDriverPhone = orderDriver.phone;
           const assignedDriverVehicleType = orderDriver.vehicleType;
           const statusNormalized = ((o.status || '') + '').toLowerCase();
-          const isCompleted = statusNormalized.includes('completed');
+          const hasAssignedDriver = !!assignedDriverName;
+          const isCompleted = statusNormalized.includes('completed') || hasAssignedDriver;
+          const statusClass = isCompleted ? 'completed' : ((o.status || 'pending') + '').toLowerCase();
+          const statusLabel = isCompleted ? 'COMPLETED' : (o.status || 'PENDING');
 
           return (
             <article
@@ -389,7 +392,7 @@ export default function AdminOrders() {
                 </div>
 
                 <div className="right">
-                  <div className={`status ${((o.status||'pending')+'').toLowerCase()}`}>{o.status || 'PENDING'}</div>
+                  <div className={`status ${statusClass}`}>{statusLabel}</div>
                   <div className="order-date">{date}</div>
                   <div className="order-total">{fmt(total)}</div>
                   {assignedDriverName ? (
