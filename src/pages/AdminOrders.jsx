@@ -356,123 +356,122 @@ export default function AdminOrders() {
         </div>
       )}
 
-      <section className="orders-grid">
-        {statusFiltered.map((o) => {
-          const id = o.orderId || o.id || o._id || '';
-          const orderKey = getOrderId(o) || id;
-          const date = new Date(o.orderDate || o.createdAt || Date.now()).toLocaleString();
-          let items = [];
-          try { items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch (e) { items = []; }
-          const total = parseFloat(o.totalAmount || o.total || 0) || 0;
-          const orderDriver = getOrderDriverInfo(o);
-          const assignedDriverName = orderDriver.name;
-          const assignedDriverVehicle = orderDriver.vehicle;
-          const assignedDriverPhone = orderDriver.phone;
-          const assignedDriverVehicleType = orderDriver.vehicleType;
-          const statusNormalized = ((o.status || '') + '').toLowerCase();
-          const hasAssignedDriver = !!assignedDriverName;
-          const isCompleted = statusNormalized.includes('completed') || hasAssignedDriver;
-          const statusClass = isCompleted ? 'completed' : ((o.status || 'pending') + '').toLowerCase();
-          const statusLabel = isCompleted ? 'COMPLETED' : (o.status || 'PENDING');
+      {/* TABLE VIEW */}
+      <section className="orders-table-wrap">
+        <table className="orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Driver</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-          return (
-            <article
-              className="order-card"
-              key={orderKey || Math.random()}
-              role="button"
-              tabIndex={0}
-              onClick={() => setModalOrder(o)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setModalOrder(o); }}
-            >
-              <div className="card-top">
-                <div className="left">
-                  <div className="order-id">#{id}</div>
-                  <div className="order-user">{o.customerName || o.customer_name || (o.customer && o.customer.name) || 'Guest'}</div>
-                  <div className="order-email">{o.customerEmail || o.customer_email || (o.customer && o.customer.email) || ''}</div>
-                </div>
+          <tbody>
+            {statusFiltered.map((o) => {
+              const id = getOrderId(o);
+              const date = new Date(
+                o.orderDate || o.createdAt || o.created_at || Date.now()
+              ).toLocaleString();
 
-                <div className="right">
-                  <div className={`status ${statusClass}`}>{statusLabel}</div>
-                  <div className="order-date">{date}</div>
-                  <div className="order-total">{fmt(total)}</div>
-                  {assignedDriverName ? (
-                    <div className="assigned-driver" onClick={(e) => e.stopPropagation()}>
-                      <div className="assigned-driver-label">Driver</div>
-                      <div className="assigned-driver-name">{assignedDriverName}</div>
-                      <div className="assigned-driver-meta">
-                        {assignedDriverVehicle || 'Vehicle N/A'}
-                        {assignedDriverVehicleType ? ` · ${assignedDriverVehicleType}` : ''}
-                      </div>
-                      {assignedDriverPhone && <div className="assigned-driver-meta">{assignedDriverPhone}</div>}
-                      {isCompleted && (
+              const total = parseFloat(o.totalAmount || o.total || 0) || 0;
+              const driver = getOrderDriverInfo(o);
+              const status = ((o.status || 'pending') + '').toLowerCase();
+              const hasDriver = !!driver.name;
+
+              return (
+                <tr key={id}>
+                  {/* ID */}
+                  <td className="id">#{id}</td>
+
+                  {/* CUSTOMER */}
+                  <td>
+                    <strong>
+                      {o.customerName ||
+                        o.customer_name ||
+                        (o.customer && o.customer.name) ||
+                        'Guest'}
+                    </strong>
+                    <div className="sub">
+                      {o.customerEmail ||
+                        o.customer_email ||
+                        (o.customer && o.customer.email)}
+                    </div>
+                  </td>
+
+                  {/* DATE */}
+                  <td>{date}</td>
+
+                  {/* TOTAL */}
+                  <td className="price">{fmt(total)}</td>
+
+                  {/* STATUS */}
+                  <td>
+                    <span className={`status-badge ${status}`}>
+                      {(o.status || 'PENDING').toUpperCase()}
+                    </span>
+                  </td>
+
+                  {/* DRIVER */}
+                  <td>
+                    {hasDriver ? (
+                      <>
+                        <strong>{driver.name}</strong>
+                        <div className="sub">
+                          {driver.vehicle || 'Vehicle N/A'}
+                          {driver.vehicleType
+                            ? ` · ${driver.vehicleType}`
+                            : ''}
+                        </div>
+                        {driver.phone && (
+                          <div className="sub">{driver.phone}</div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="muted">Not Assigned</span>
+                    )}
+                  </td>
+
+                  {/* ACTIONS */}
+                  <td>
+                    <div className="action-btns">
+                      <button
+                        className="btn small"
+                        onClick={() => setModalOrder(o)}
+                      >
+                        View
+                      </button>
+
+                      {!hasDriver && (
                         <button
                           className="btn outline small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openAssignModal(o);
-                          }}
+                          onClick={() => openAssignModal(o)}
                         >
-                          Reassign
+                          Assign
+                        </button>
+                      )}
+
+                      {status.includes('completed') && (
+                        <button
+                          className="btn danger small"
+                          onClick={() =>
+                            deleteOrderByIdAdmin(id)
+                          }
+                        >
+                          Delete
                         </button>
                       )}
                     </div>
-                  ) : (!assignedDriverName && isCompleted && (
-                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="btn outline small"
-                        onClick={() => openAssignModal(o)}
-                        disabled={driversLoading || availableDrivers.length === 0}
-                      >
-                        {driversLoading ? 'Loading...' : 'Assign Driver'}
-                      </button>
-                    </div>
-                  ))}
-                    {isCompleted && (
-                      <div style={{ marginTop: 8 }}>
-                        <button
-                          className="btn danger"
-                          onClick={(e) => { e.stopPropagation(); deleteOrderByIdAdmin(id); }}
-                        >Remove</button>
-                      </div>
-                    )}
-                </div>
-              </div>
-
-                <div className="order-items">
-                <table>
-                  <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Line Total</th></tr></thead>
-                  <tbody>
-                    {items.map((it, i) => (
-                      <tr key={i}>
-                        <td>
-                          <div className="item-cell">
-                            <div className="item-media">
-                              {it.image ? (
-                                <img src={renderItemImage(it.image)} alt={it.name || it.title || ''} />
-                              ) : (
-                                <div className="no-thumb" />
-                              )}
-                              <div className="qty-badge">{it.qty || 1}</div>
-                            </div>
-                            <div className="item-info">
-                              <div className="item-name">{it.name || it.title || it.id}</div>
-                              <div className="item-meta">Unit: {fmt(parseFloat(it.price)||0)}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="center">{it.qty || 1}</td>
-                        <td className="right">{fmt(parseFloat(it.price)||0)}</td>
-                        <td className="right">{fmt(((parseFloat(it.price)||0) * (it.qty||1)))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-
-            </article>
-          );
-        })}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </section>
 
       {assignModalOrder && (
