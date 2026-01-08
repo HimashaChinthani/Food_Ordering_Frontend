@@ -139,29 +139,32 @@ export default function AdminOrders() {
       const res = await fetch(`${DRIVER_API}/getdrivers`, { headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error(`Driver service ${res.status}`);
       const data = await res.json();
-      const arr = Array.isArray(data)
+
+      // Normalize driver data
+      const drivers = Array.isArray(data)
         ? data
-        : (data.drivers && Array.isArray(data.drivers))
-          ? data.drivers
-          : (data.data && Array.isArray(data.data))
-            ? data.data
-            : [];
-      const normalized = arr.map((d) => {
-        const id = getDriverId(d);
+        : data.drivers || data.data || [];
+
+      const normalizedDrivers = drivers.map((driver) => {
+        const id = getDriverId(driver);
         return {
-          ...d,
           id,
-          name: d?.name || d?.fullName || d?.driverName || '',
-          phoneNumber: d?.phoneNumber || d?.phone || '',
-          vehicleNumber: d?.vehicleNumber || d?.vehicle_no || d?.vehicleNo || '',
-          vehicleType: d?.vehicleType || d?.vehicle_type || '',
-          status: (d?.status || 'AVAILABLE').toUpperCase(),
+          name: driver.name || driver.fullName || driver.driverName || 'Unknown',
+          phoneNumber: driver.phoneNumber || driver.phone || 'N/A',
+          vehicleNumber: driver.vehicleNumber || driver.vehicle_no || driver.vehicleNo || 'N/A',
+          vehicleType: driver.vehicleType || driver.vehicle_type || 'N/A',
+          status: (driver.status || 'AVAILABLE').toUpperCase(),
         };
       });
-      const availableOnly = normalized.filter((d) => (d.status || '').toUpperCase() === 'AVAILABLE');
-      setAvailableDrivers(availableOnly);
+
+      // Filter only available drivers
+      const availableDrivers = normalizedDrivers.filter(
+        (driver) => driver.status === 'AVAILABLE'
+      );
+
+      setAvailableDrivers(availableDrivers);
     } catch (err) {
-      console.warn('Failed to load available drivers', err);
+      console.error('Failed to load available drivers', err);
       setDriversError('Failed to load drivers');
       setAvailableDrivers([]);
     } finally {
@@ -446,7 +449,7 @@ export default function AdminOrders() {
                         View
                       </button>
 
-                      {!hasDriver && (
+                      {!hasDriver && !status.includes('pending') && (
                         <button
                           className="btn outline small"
                           onClick={() => openAssignModal(o)}
@@ -458,9 +461,7 @@ export default function AdminOrders() {
                       {status.includes('completed') && (
                         <button
                           className="btn danger small"
-                          onClick={() =>
-                            deleteOrderByIdAdmin(id)
-                          }
+                          onClick={() => deleteOrderByIdAdmin(id)}
                         >
                           Delete
                         </button>

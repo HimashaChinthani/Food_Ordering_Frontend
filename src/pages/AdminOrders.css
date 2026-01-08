@@ -191,6 +191,38 @@
 .assigned-driver-name{font-weight:700;color:#1e3a8a}
 .assigned-driver-meta{font-size:.8rem;color:#475569}
 
+/* Driver details styling */
+.driver-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.driver-name {
+  font-weight: bold;
+  color: #1d4ed8; /* Blue for driver name */
+}
+
+.driver-meta {
+  font-size: 0.85rem;
+  color: #6b7280; /* Gray for metadata */
+}
+
+/* Highlight unavailable drivers */
+.driver-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fbff, #eef5ff);
+  border: 1px solid rgba(43, 138, 239, 0.12);
+}
+
+.driver-row:hover {
+  background: #e0f2fe; /* Light blue on hover */
+}
+
 /* MODAL */
 .modal-overlay{
   position:fixed;
@@ -229,16 +261,6 @@
   justify-content:flex-end;
   gap:10px;
   border-top:1px solid #e5e7eb;
-}
-
-/* DRIVERS */
-.driver-row{
-  display:flex;
-  justify-content:space-between;
-  padding:12px 14px;
-  border-radius:12px;
-  border:1px solid #bfdbfe;
-  background:#f0f7ff;
 }
 
 /* RESPONSIVE */
