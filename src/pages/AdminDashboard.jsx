@@ -36,7 +36,7 @@ export default function AdminDashboard() {
 
       const sum = arr.reduce((s, o) => {
         const status = (o.status || o.order_status || '').toString().toLowerCase();
-        if (!status.includes('completed')) return s;
+        if (!status.includes('completed' && 'assigned')) return s;
         const t = parseFloat(o.totalAmount || o.total || o.price || 0) || 0;
         return s + t;
       }, 0);
