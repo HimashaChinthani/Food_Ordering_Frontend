@@ -82,19 +82,19 @@ export default function AdminOrders() {
           if (!dto) return o;
 
           const driverCore = dto.driver || dto.driverInfo || dto;
-          const driverId = getDriverId(driverCore);
-          const name = dto.driverName || driverCore.name || driverCore.fullName || driverCore.driverName || '';
-          const phone = dto.driverPhoneNumber || dto.phoneNumber || driverCore.phoneNumber || driverCore.phone || '';
-          const vehicle = dto.driverVehicleNumber || dto.vehicleNumber || driverCore.vehicleNumber || driverCore.vehicle_no || driverCore.vehicleNo || '';
-          const vehicleType = dto.driverVehicleType || dto.vehicleType || driverCore.vehicleType || driverCore.vehicle_type || '';
+          const driverId = driverCore.driverId || dto.driverId || null;
+          const name = driverCore.driverName || dto.driverName || null;
+          const phone = driverCore.driverPhoneNumber || dto.driverPhoneNumber || null;
+          const vehicle = driverCore.driverVehicleNumber || dto.driverVehicleNumber || null;
+          const vehicleType = driverCore.driverVehicleType || dto.driverVehicleType || null;
 
           return {
             ...o,
             assignedDriverId: driverId || o.assignedDriverId,
-            assignedDriverName: name || o.assignedDriverName,
-            assignedDriverPhone: phone || o.assignedDriverPhone,
-            assignedDriverVehicle: vehicle || o.assignedDriverVehicle,
-            assignedDriverVehicleType: vehicleType || o.assignedDriverVehicleType,
+            assignedDriverName: name,
+            assignedDriverPhone: phone,
+            assignedDriverVehicle: vehicle,
+            assignedDriverVehicleType: vehicleType,
           };
         } catch (err) {
           console.warn('Failed to load assigned driver for order', id, err);
@@ -295,7 +295,6 @@ export default function AdminOrders() {
     if (!statusFilter || statusFilter === 'all') return true;
     const statusRaw = (o.status || o.order_status || o.paymentStatus || '').toString().toLowerCase();
     if (statusFilter === 'pending') return statusRaw.includes('pending');
-    if (statusFilter === 'completed') return statusRaw.includes('completed');
     return true;
   });
 
@@ -329,10 +328,6 @@ export default function AdminOrders() {
             className={statusFilter === 'pending' ? 'btn primary' : 'btn outline'}
             onClick={() => setStatusFilter('pending')}
           >Pending</button>
-          <button
-            className={statusFilter === 'completed' ? 'btn primary' : 'btn outline'}
-            onClick={() => setStatusFilter('completed')}
-          >Completed</button>
         </div>
 
         <input className="search" placeholder="Search by order id, name or email" value={query} onChange={e => setQuery(e.target.value)} />
@@ -384,7 +379,7 @@ export default function AdminOrders() {
               const total = parseFloat(o.totalAmount || o.total || 0) || 0;
               const driver = getOrderDriverInfo(o);
               const status = ((o.status || 'pending') + '').toLowerCase();
-              const hasDriver = !!driver.name;
+              const hasDriver = !!o.assignedDriverId;
 
               return (
                 <tr key={id}>
@@ -415,7 +410,11 @@ export default function AdminOrders() {
                   {/* STATUS */}
                   <td>
                     <span className={`status-badge ${status}`}>
-                      {(o.status || 'PENDING').toUpperCase()}
+                      {hasDriver && status.includes('completed')
+                        ? 'COMPLETED'
+                        : hasDriver
+                        ? 'ASSIGNED'
+                        : (o.status || 'PENDING').toUpperCase()}
                     </span>
                   </td>
 
@@ -423,15 +422,16 @@ export default function AdminOrders() {
                   <td>
                     {hasDriver ? (
                       <>
-                        <strong>{driver.name}</strong>
-                        <div className="sub">
-                          {driver.vehicle || 'Vehicle N/A'}
-                          {driver.vehicleType
-                            ? ` · ${driver.vehicleType}`
-                            : ''}
-                        </div>
-                        {driver.phone && (
-                          <div className="sub">{driver.phone}</div>
+                        {driver.name && <strong>{driver.name}</strong>}
+                        {driver.vehicle && (
+                          <div className="sub">
+                            {driver.vehicle}
+                            {driver.vehicleType ? ` · ${driver.vehicleType}` : ''}
+                          </div>
+                        )}
+                        {driver.phone && <div className="sub">{driver.phone}</div>}
+                        {!driver.name && !driver.vehicle && !driver.phone && (
+                          <div className="sub">Driver ID: {o.assignedDriverId}</div>
                         )}
                       </>
                     ) : (
@@ -444,7 +444,16 @@ export default function AdminOrders() {
                     <div className="action-btns">
                       <button
                         className="btn small"
-                        onClick={() => setModalOrder(o)}
+                        onClick={() => {
+                          const basicOrderDetails = {
+                            orderId: o.orderId || o.id || o._id,
+                            customerName: o.customerName || o.customer_name || (o.customer && o.customer.name) || 'Guest',
+                            customerEmail: o.customerEmail || o.customer_email || (o.customer && o.customer.email) || '',
+                            status: o.status || 'PENDING',
+                            totalAmount: o.totalAmount || o.total || 0,
+                          };
+                          setModalOrder(basicOrderDetails);
+                        }}
                       >
                         View
                       </button>
@@ -455,15 +464,6 @@ export default function AdminOrders() {
                           onClick={() => openAssignModal(o)}
                         >
                           Assign
-                        </button>
-                      )}
-
-                      {status.includes('completed') && (
-                        <button
-                          className="btn danger small"
-                          onClick={() => deleteOrderByIdAdmin(id)}
-                        >
-                          Delete
                         </button>
                       )}
                     </div>
