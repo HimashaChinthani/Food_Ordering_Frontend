@@ -247,7 +247,7 @@ export default function AdminOrders() {
       loadAvailableDrivers();
     } catch (err) {
       console.error('Failed to assign driver', err);
-      alert(err.message || 'Failed to assign driver');
+      //alert(err.message || 'Failed to assign driver');
     } finally {
       setAssigningDriverId(null);
     }
@@ -295,6 +295,7 @@ export default function AdminOrders() {
     if (!statusFilter || statusFilter === 'all') return true;
     const statusRaw = (o.status || o.order_status || o.paymentStatus || '').toString().toLowerCase();
     if (statusFilter === 'pending') return statusRaw.includes('pending');
+    if (statusFilter === 'completed') return statusRaw.includes('completed');
     return true;
   });
 
@@ -328,6 +329,10 @@ export default function AdminOrders() {
             className={statusFilter === 'pending' ? 'btn primary' : 'btn outline'}
             onClick={() => setStatusFilter('pending')}
           >Pending</button>
+          <button
+            className={statusFilter === 'completed' ? 'btn primary' : 'btn outline'}
+            onClick={() => setStatusFilter('completed')}
+          >Completed</button>
         </div>
 
         <input className="search" placeholder="Search by order id, name or email" value={query} onChange={e => setQuery(e.target.value)} />
@@ -409,13 +414,21 @@ export default function AdminOrders() {
 
                   {/* STATUS */}
                   <td>
-                    <span className={`status-badge ${status}`}>
-                      {hasDriver && status.includes('completed')
-                        ? 'COMPLETED'
-                        : hasDriver
-                        ? 'ASSIGNED'
-                        : (o.status || 'PENDING').toUpperCase()}
-                    </span>
+                    <div className="status-badges">
+                      {hasDriver && (
+                        <span className="status-badge assigned">ASSIGNED</span>
+                      )}
+
+                      {status.includes('completed') && (
+                        <span className="status-badge completed">COMPLETED</span>
+                      )}
+
+                      {!hasDriver && !status.includes('completed') && (
+                        <span className={`status-badge ${status}`}>
+                          {(o.status || 'PENDING').toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* DRIVER */}
