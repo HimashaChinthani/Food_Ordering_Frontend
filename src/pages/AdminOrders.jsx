@@ -486,7 +486,7 @@ export default function AdminOrders() {
                   </td>
 
                   {/* DATE */}
-                  <td>{date}</td>
+                  <td className="date-cell">{date}</td>
 
                   {/* TOTAL */}
                   <td className="price">{fmt(total)}</td>
