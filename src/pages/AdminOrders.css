@@ -172,7 +172,7 @@
 .status-badge.cancelled{background:#dc2626}
 
 /* assigned badge - use orange */
-.status-badge.assigned{background:#f59e0b}
+.status-badge.assigned{background:#6d28d9}
 
 /* actions */
 .action-btns{
@@ -266,7 +266,7 @@
 .modal-card .status.pending{background:#f59e0b}
 .modal-card .status.completed{background:#16a34a}
 .modal-card .status.cancelled{background:#dc2626}
-.modal-card .status.assigned{background:#f59e0b}
+.modal-card .status.assigned{background:#6d28d9}
 
 
 .modal-header{

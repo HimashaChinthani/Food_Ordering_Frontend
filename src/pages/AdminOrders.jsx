@@ -557,6 +557,14 @@ export default function AdminOrders() {
                           UnAssign
                         </button>
                       )}
+                      {hasDriver && !status.includes('pending') && (
+                        <button
+                          className="btn outline small"
+                          onClick={() => openUnAssignModal(o)}
+                        >
+                         Print bill
+                        </button>
+                      )}
                       {!hasDriver && !status.includes('pending') && (
                         <button
                           className="btn outline small"
