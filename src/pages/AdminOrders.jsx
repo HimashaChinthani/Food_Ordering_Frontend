@@ -701,7 +701,9 @@ export default function AdminOrders() {
                         View
                       </button>
                       <button className="btn outline small" onClick={() => printBill(id, 'customer')}>Print Customer Bill</button>
-                      <button className="btn outline small" onClick={() => printBill(id, 'driver')}>Print Driver Bill</button>
+                      {hasDriver && (
+                        <button className="btn outline small" onClick={() => printBill(id, 'driver')}>Print Driver Bill</button>
+                      )}
             {hasDriver && !status.includes('pending') && (
                         <button
                           className="btn outline small"
