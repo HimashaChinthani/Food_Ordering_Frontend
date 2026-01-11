@@ -349,6 +349,157 @@ export default function AdminOrders() {
     }
   }
 
+  const buildInvoiceHtmlFromJson = (data, order, type) => {
+    const title = type === 'driver' ? 'Driver Bill' : 'Customer Bill';
+    const items = Array.isArray(data.items) ? data.items : (order.items || []);
+    const rows = (items || []).map(it => `
+      <tr>
+        <td style="padding:8px;border:1px solid #ddd">${it.name||it.title||it.id||''}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center">${it.qty||1}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right">${(it.price!=null)?('₨'+Number(it.price).toFixed(2)):'₨0.00'}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right">${(it.qty&&it.price)?('₨'+(Number(it.qty)*Number(it.price)).toFixed(2)):'₨0.00'}</td>
+      </tr>
+    `).join('');
+    const subtotal = data.total || order.totalAmount || order.total || 0;
+    const customerName = (order.customerName || order.customer_name || (order.customer && order.customer.name) || 'Guest');
+
+    return `
+      <div style="font-family:Segoe UI, Arial, sans-serif;color:#111;padding:20px;">
+        <h2 style="margin:0 0 8px">${title}</h2>
+        <div style="margin-bottom:12px;color:#555">Order ID: ${order.orderId || order.id || order._id || ''} • Date: ${new Date(order.orderDate||order.createdAt||order.created_at||Date.now()).toLocaleString()}</div>
+        <div style="margin-bottom:12px"><strong>Customer:</strong> ${customerName}</div>
+        <table style="width:100%;border-collapse:collapse;margin-top:6px">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px;border:1px solid #ddd;background:#f3f4f6">Item</th>
+              <th style="padding:8px;border:1px solid #ddd;background:#f3f4f6">Qty</th>
+              <th style="padding:8px;border:1px solid #ddd;background:#f3f4f6">Unit</th>
+              <th style="padding:8px;border:1px solid #ddd;background:#f3f4f6">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="4" style="padding:12px;text-align:center;color:#666">No items</td></tr>`}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" style="padding:8px;border:1px solid #ddd;text-align:right"><strong>Total</strong></td>
+              <td style="padding:8px;border:1px solid #ddd;text-align:right"><strong>₨${Number(subtotal||0).toFixed(2)}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
+  };
+
+  const openPrintWindow = (html) => {
+    const newWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!newWindow) {
+      alert('Unable to open print window (blocked).');
+      return;
+    }
+    const doc = newWindow.document;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Bill</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <style>
+        body { margin:0; padding:12px; background:#fff; -webkit-print-color-adjust:exact; }
+        @media print { body { margin:0 } .no-print { display:none } }
+      </style>
+    </head><body>${html}</body></html>`);
+    doc.close();
+    setTimeout(() => {
+      newWindow.focus();
+      newWindow.print();
+    }, 300);
+  };
+
+  // Print given full HTML document via a hidden iframe (no new window)
+  const printHtmlInIframe = (htmlDoc) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    // Use srcdoc where supported
+    try {
+      iframe.srcdoc = htmlDoc;
+    } catch (e) {
+      // fallback: create blob URL
+      const blob = new Blob([htmlDoc], { type: 'text/html' });
+      iframe.src = URL.createObjectURL(blob);
+    }
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.warn('Iframe print failed', err);
+        // fallback: open in new window
+        openPrintWindow(htmlDoc);
+      }
+      setTimeout(() => {
+        try { document.body.removeChild(iframe); } catch (e) {}
+      }, 1000);
+    };
+  };
+
+  const printBill = async (orderId, type) => {
+    const order = orders.find(o => getOrderId(o) === String(orderId)) || { id: orderId };
+    try {
+      const res = await fetch(`${API}/bill/${encodeURIComponent(orderId)}/${type}`);
+      const ct = res.headers.get('content-type') || '';
+
+      // If server returns a PDF, print it via a hidden iframe (no new window)
+      if (ct.includes('application/pdf')) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          } catch (e) {
+            // fallback: open the PDF in a new tab if iframe print fails
+            window.open(url, '_blank');
+          }
+          setTimeout(() => {
+            try { document.body.removeChild(iframe); } catch (e) {}
+            try { URL.revokeObjectURL(url); } catch (e) {}
+          }, 1000);
+        };
+        return;
+      }
+
+      // Non-PDF responses: handle JSON or text/html using existing window flow
+      const ctLower = ct.toLowerCase();
+      if (ctLower.includes('application/json')) {
+        const data = await res.json();
+        const htmlDoc = `<!doctype html><html><head><meta charset="utf-8"><title>Bill</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:12px;font-family:Segoe UI,Arial,sans-serif;color:#111}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd}</style></head><body>${buildInvoiceHtmlFromJson(data, order, type)}</body></html>`;
+        printHtmlInIframe(htmlDoc);
+        return;
+      }
+
+      const text = await res.text();
+      const isHtml = /<\/?(html|body|div|table|pre|h1|h2)/i.test(text);
+      const htmlDoc = isHtml ? text : `<!doctype html><html><head><meta charset="utf-8"><title>Bill</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div style="font-family:Segoe UI,Arial,sans-serif;padding:18px;color:#111"><pre style="white-space:pre-wrap">${text.replace(/</g,'&lt;')}</pre></div></body></html>`;
+      printHtmlInIframe(htmlDoc);
+    } catch (err) {
+      console.error('Failed to fetch bill', err);
+      alert('Failed to fetch bill: ' + (err.message || err));
+    }
+  };
+
   // helper to render item image (supports base64 or data: uri)
   const renderItemImage = (img) => {
     if (!img) return null;
@@ -549,6 +700,8 @@ export default function AdminOrders() {
                       >
                         View
                       </button>
+                      <button className="btn outline small" onClick={() => printBill(id, 'customer')}>Print Customer Bill</button>
+                      <button className="btn outline small" onClick={() => printBill(id, 'driver')}>Print Driver Bill</button>
             {hasDriver && !status.includes('pending') && (
                         <button
                           className="btn outline small"
@@ -557,14 +710,7 @@ export default function AdminOrders() {
                           UnAssign
                         </button>
                       )}
-                      {hasDriver && !status.includes('pending') && (
-                        <button
-                          className="btn outline small"
-                          onClick={() => openUnAssignModal(o)}
-                        >
-                         Print bill
-                        </button>
-                      )}
+                      
                       {!hasDriver && !status.includes('pending') && (
                         <button
                           className="btn outline small"
