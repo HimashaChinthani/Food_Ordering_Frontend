@@ -253,6 +253,85 @@ export default function AdminOrders() {
     }
   };
 
+    const openUnAssignModal = async (order) => {
+      const orderId = getOrderId(order);
+      const driverId = order && (order.assignedDriverId || order.driverId || order.driver_id || order.driver || '');
+      if (!orderId) {
+        alert('Order id not found.');
+        return;
+      }
+      if (!driverId) {
+        alert('Driver id not found.');
+        return;
+      }
+
+      if (!window.confirm(`Unassign driver ${driverId} from order ${orderId}?`)) return;
+
+      try {
+        const res = await fetch(`${API}/unassigndriver/${encodeURIComponent(orderId)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ driverId }),
+        });
+
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(txt || `Server ${res.status}`);
+        }
+
+        // Remove driver assignment locally
+        setOrders((prev) => prev.map((o) => {
+          if (getOrderId(o) !== orderId) return o;
+          const copy = { ...o };
+          delete copy.assignedDriverId;
+          delete copy.assignedDriverName;
+          delete copy.assignedDriverPhone;
+          delete copy.assignedDriverVehicle;
+          delete copy.assignedDriverVehicleType;
+          return copy;
+        }));
+
+        // Try to mark driver AVAILABLE in driver service
+        let drvRes = await fetch(`${DRIVER_API}/updatedriver/${encodeURIComponent(driverId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ status: 'AVAILABLE' }),
+        });
+        if (!drvRes.ok) {
+          drvRes = await fetch(`${DRIVER_API}/updatedriver`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ id: driverId, status: 'AVAILABLE' }),
+          });
+        }
+
+        if (!drvRes.ok) {
+          console.warn('Driver status update failed while unassigning', await drvRes.text().catch(() => ''));
+        } else {
+          // Add driver back to availableDrivers list if not present
+          const addedDriver = {
+            id: driverId,
+            name: order.assignedDriverName || order.driverName || 'Driver',
+            phoneNumber: order.assignedDriverPhone || order.driverPhone || '',
+            vehicleNumber: order.assignedDriverVehicle || order.driverVehicle || '',
+            vehicleType: order.assignedDriverVehicleType || order.driverVehicleType || '',
+            status: 'AVAILABLE',
+          };
+          setAvailableDrivers((prev) => {
+            if (prev.find((d) => getDriverId(d) === driverId)) return prev;
+            return [addedDriver, ...prev];
+          });
+        }
+
+        // Refresh orders from backend to keep in sync
+        loadOrders();
+        loadAvailableDrivers();
+      } catch (err) {
+        console.error('Failed to unassign driver', err);
+        alert('Failed to unassign driver: ' + (err.message || err));
+      }
+    };
+
   async function deleteOrderByIdAdmin(id) {
     if (!id) return;
     if (!window.confirm(`Remove order ${id}? This will permanently delete the order.`)) return;
@@ -470,7 +549,14 @@ export default function AdminOrders() {
                       >
                         View
                       </button>
-
+            {hasDriver && !status.includes('pending') && (
+                        <button
+                          className="btn outline small"
+                          onClick={() => openUnAssignModal(o)}
+                        >
+                          UnAssign
+                        </button>
+                      )}
                       {!hasDriver && !status.includes('pending') && (
                         <button
                           className="btn outline small"
