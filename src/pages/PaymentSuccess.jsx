@@ -41,8 +41,28 @@ const PaymentSuccess = () => {
                 <h4>Items</h4>
                 {(() => {
                   let items = [];
-                  try { items = typeof payment.items === 'string' ? JSON.parse(payment.items) : (payment.items || []); } catch(e) { items = []; }
-                  if (items.length === 0) return <div className="muted">No items available.</div>;
+                  try {
+                    // support several shapes: payment may be an object with items (array or JSON string),
+                    // or a batched payment object containing `.payments` or being an array of payments.
+                    if (Array.isArray(payment)) {
+                      items = payment.flatMap(p => {
+                        try { return typeof p.items === 'string' ? JSON.parse(p.items) : (p.items || []); } catch { return []; }
+                      });
+                    } else if (payment && Array.isArray(payment.items)) {
+                      // handle nested arrays
+                      items = payment.items.flatMap(it => Array.isArray(it) ? it : [it]);
+                    } else if (payment && payment.payments && Array.isArray(payment.payments)) {
+                      items = payment.payments.flatMap(p => {
+                        try { return typeof p.items === 'string' ? JSON.parse(p.items) : (p.items || []); } catch { return []; }
+                      });
+                    } else if (payment && typeof payment.items === 'string') {
+                      items = JSON.parse(payment.items);
+                    } else {
+                      items = (payment && payment.items) || [];
+                    }
+                  } catch (e) { items = []; }
+
+                  if (!items || items.length === 0) return <div className="muted">No items available.</div>;
                   return (
                     <table className="ps-items-table">
                       <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>

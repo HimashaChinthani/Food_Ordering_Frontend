@@ -207,84 +207,106 @@ const CartPage = () => {
     const successes = [];
     const failures = [];
 
+    // prepare batched payloads and combined items list
+    const payloads = [];
+    const combinedItems = [];
     for (const o of orders) {
       try {
         let itemsList = [];
         try { itemsList = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch (e) { itemsList = []; }
         const computedTotal = itemsList.reduce((s, it) => s + (parseFloat(it.price) || 0) * (it.qty || 1), 0);
 
+        // include source order id on each item for traceability
+        for (const it of itemsList) combinedItems.push({ ...(it || {}), fromOrderId: o.orderId ?? o.id ?? null });
+
         const raw = localStorage.getItem('user');
         const user = raw ? JSON.parse(raw) : null;
         const rawUserId = user ? (user.id ?? user._id ?? user.userId) : null;
         const normalizedUserId = rawUserId != null && String(rawUserId).match(/^\d+$/) ? Number(rawUserId) : rawUserId;
 
-        const payload = {
+        payloads.push({
           orderId: o.orderId ?? o.id ?? null,
           customerName: o.customerName ?? (user && (user.name || user.fullName || user.username)) ?? '',
           customerEmail: o.customerEmail ?? user?.email ?? '',
           status: 'COMPLETED',
           totalAmount: parseFloat(o.totalAmount) || computedTotal,
           orderDate: o.orderDate ?? new Date().toISOString(),
-          items: JSON.stringify(itemsList),
+          items: itemsList,
           user_id: normalizedUserId,
-        };
-
-        console.log('pay-all payload:', payload);
-
-        const res = await fetch('http://localhost:8082/api/v3/paid-orders/add', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
+      } catch (err) {
+        failures.push({ order: o, error: err.message || err });
+        console.error('pay all payload build error for order', o, err);
+      }
+    }
 
-        const rawText = await res.text().catch(() => null);
-        let data = null; try { data = rawText ? JSON.parse(rawText) : null; } catch(e) { data = null; }
-        if (!res.ok) {
-          failures.push({ order: o, status: res.status, body: rawText || data });
-          console.error('pay all error for order', o, { status: res.status, rawText, parsed: data });
-        } else {
-          const saved = data || rawText;
-          successes.push(saved);
-          console.log('Payment saved for order (pay-all):', saved);
-          // try to update order status to COMPLETED using server-returned id or original
+    console.log('pay-all batched payloads:', payloads);
+
+    // send batched request
+    try {
+      const res = await fetch('http://localhost:8082/api/v3/pay-multiple', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloads),
+      });
+
+      const rawText = await res.text().catch(() => null);
+      let respData = null;
+      try { respData = rawText ? JSON.parse(rawText) : null; } catch (e) { respData = null; }
+
+      if (!res.ok) {
+        console.error('pay-multiple server error', { status: res.status, rawText, parsed: respData });
+        for (const o of orders) failures.push({ order: o, status: res.status, body: rawText || respData });
+      } else {
+        const savedList = Array.isArray(respData) ? respData : (respData ? (respData.saved || [respData]) : []);
+        for (const s of savedList) successes.push(s);
+
+        // best-effort update of order statuses
+        for (const o of orders) {
           try {
-            const returnedOrderId = (data && (data.orderId ?? data.order_id)) ?? (o.orderId ?? o.id ?? null);
+            const returnedOrderId = o.orderId ?? o.id ?? null;
             if (returnedOrderId) {
               const updateUrl = `http://localhost:8082/api/v3/updatestatus/${encodeURIComponent(returnedOrderId)}`;
-              console.log('Updating order status (pay-all) using URL:', updateUrl);
               const updRes = await fetch(updateUrl, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'COMPLETED' })
               });
-              const updText = await updRes.text().catch(() => '');
               if (!updRes.ok) {
-                console.warn('Failed to update order status (pay-all):', returnedOrderId, updRes.status, updText);
-              } else {
-                console.log('Order status updated to COMPLETED (pay-all):', returnedOrderId, updText);
+                const updText = await updRes.text().catch(() => '');
+                console.warn('Failed to update order status (pay-multiple):', returnedOrderId, updRes.status, updText);
               }
-            } else {
-              console.warn('No order id available to update status (pay-all) for order', o);
             }
           } catch (e) {
-            console.error('Error updating order status (pay-all)', e);
+            console.error('Error updating order status (pay-multiple)', e);
           }
         }
-      } catch (err) {
-        failures.push({ order: o, error: err.message || err });
-        console.error('pay all unexpected error for order', o, err);
       }
+    } catch (err) {
+      console.error('pay-multiple unexpected error', err);
+      for (const o of orders) failures.push({ order: o, error: err.message || err });
     }
 
     setPayAllLoading(false);
 
-    // Show summary
     const ok = successes.length;
     const bad = failures.length;
     alert(`Pay All completed: ${ok} succeeded, ${bad} failed` + (bad ? '. Check console for details.' : ''));
 
-    // refresh orders
     try { const raw = localStorage.getItem('user'); if (raw) fetchOrders(JSON.parse(raw)); } catch(e){}
 
-    // If at least one payment succeeded, navigate to payment-success for the first
+    // build combined payment to display
+    const combinedPayment = {
+      paymentId: `BATCH-${Date.now()}`,
+      orderId: payloads.map(p => p.orderId).filter(Boolean).join(',') || null,
+      customerName: (payloads[0] && payloads[0].customerName) || 'Multiple Orders',
+      customerEmail: (payloads[0] && payloads[0].customerEmail) || '',
+      status: 'COMPLETED',
+      totalAmount: grandTotal,
+      orderDate: new Date().toISOString(),
+      items: combinedItems,
+    };
+
     if (successes.length > 0) {
-      navigate('/payment-success', { state: { payment: successes[0] } });
+      navigate('/payment-success', { state: { payment: combinedPayment } });
     }
   }
 
