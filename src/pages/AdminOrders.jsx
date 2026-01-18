@@ -526,6 +526,11 @@ export default function AdminOrders() {
     const statusRaw = (o.status || o.order_status || o.paymentStatus || '').toString().toLowerCase();
     if (statusFilter === 'pending') return statusRaw.includes('pending');
     if (statusFilter === 'completed') return statusRaw.includes('completed');
+    if (statusFilter === 'assigned') {
+      const hasDriver = Boolean(o.assignedDriverId || o.driverId || o.driver_id || o.assignedDriver);
+      return hasDriver;
+    }
+   
     return true;
   });
 
@@ -563,6 +568,11 @@ export default function AdminOrders() {
             className={statusFilter === 'completed' ? 'btn primary' : 'btn outline'}
             onClick={() => setStatusFilter('completed')}
           >Completed</button>
+          <button
+            className={statusFilter === 'assigned' ? 'btn primary' : 'btn outline'}
+            onClick={() => setStatusFilter('assigned')}
+          >Assigned</button>
+         
         </div>
 
         <input className="search" placeholder="Search by order id, name or email" value={query} onChange={e => setQuery(e.target.value)} />
