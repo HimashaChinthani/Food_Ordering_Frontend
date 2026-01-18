@@ -5,7 +5,8 @@ import { useCart } from '../context/CartContext';
 
 const Header = () => {
 	const { items } = useCart();
-	const count = items.reduce((s, it) => s + (it.qty || 1), 0);
+	const cartCount = (items || []).reduce((s, it) => s + (parseInt(it.qty, 10) || 1), 0);
+	const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 	const [user, setUser] = useState(null);
 	const [open, setOpen] = useState(false);
 	const isAdmin = user && user.role && String(user.role).toLowerCase() === 'admin';
@@ -20,6 +21,58 @@ const Header = () => {
 			setUser(null);
 		}
 	}, []);
+
+	useEffect(() => {
+		// fetch pending orders for logged-in user and update badge
+		async function fetchPending() {
+			try {
+				const raw = localStorage.getItem('user');
+				if (!raw) {
+					setPendingOrdersCount(0);
+					return;
+				}
+				const u = JSON.parse(raw);
+				const userId = u.id ?? u._id ?? u.userId ?? u.userid ?? null;
+				const email = u.email ?? u.user_email ?? null;
+
+				const url = userId
+					? `http://localhost:8082/api/v3/getorders?user_id=${encodeURIComponent(userId)}`
+					: (email ? `http://localhost:8082/api/v3/getordersms?email=${encodeURIComponent(email)}` : null);
+
+				if (!url) {
+					setPendingOrdersCount(0);
+					return;
+				}
+
+				const res = await fetch(url, { headers: { Accept: 'application/json' } });
+				if (!res.ok) {
+					setPendingOrdersCount(0);
+					return;
+				}
+
+				const data = await res.json();
+				const arr = Array.isArray(data) ? data : (data.orders || (data.data && Array.isArray(data.data) ? data.data : [data]));
+
+				const filtered = arr.filter(order => {
+					const oid = order.user_id ?? order.userId ?? order.user ?? order.customerId ?? order.customer_id ?? order.userid ?? order.id ?? null;
+					const oemail = (order.customerEmail ?? order.customer_email ?? order.email ?? (order.customer && order.customer.email) ?? '').toString().toLowerCase();
+					const matchById = userId && oid != null && String(oid) === String(userId);
+					const matchByEmail = email && oemail && oemail === String(email).toLowerCase();
+					if (!(matchById || matchByEmail)) return false;
+
+					const statusRaw = (order.status ?? order.order_status ?? order.paymentStatus ?? '').toString();
+					const status = statusRaw.trim().toLowerCase();
+					return status.includes('pending');
+				});
+
+				setPendingOrdersCount(filtered.length);
+			} catch (e) {
+				setPendingOrdersCount(0);
+			}
+		}
+
+		fetchPending();
+	}, [items]);
 
 	useEffect(() => {
 		function onDoc(e) {
@@ -51,8 +104,11 @@ const Header = () => {
 						) : (
 							<>
 								<Link to="/home">Home</Link>
-								<Link to="/menu">Menu</Link>
-								<Link to="/cart" className="cart-link">Cart{count>0 && <span className="badge">{count}</span>}</Link>
+										<Link to="/menu">Menu</Link>
+										{(() => {
+											const displayCount = (pendingOrdersCount && pendingOrdersCount > 0) ? pendingOrdersCount : cartCount;
+											return <Link to="/cart" className="cart-link">Cart{displayCount>0 && <span className="badge">{displayCount}</span>}</Link>;
+										})()}
 							</>
 						)}
 					</div>
