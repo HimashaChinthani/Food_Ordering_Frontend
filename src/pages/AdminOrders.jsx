@@ -200,11 +200,35 @@ export default function AdminOrders() {
       // with body AssignDriverRequest { driverId }
       const payload = { driverId };
 
-      const orderRes = await fetch(`${API}/assigndriver/${encodeURIComponent(orderId)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      });
+   try {
+  const orderRes = await fetch(
+    `${API}/assigndriver/${encodeURIComponent(orderId)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!orderRes.ok) {
+    const errorText = await orderRes.text();
+    throw new Error(errorText || "Failed to assign driver");
+  }
+
+  const data = await orderRes.json();
+
+  alert("Driver assigned successfully!");
+
+  // ✅ Refresh page
+  window.location.reload();
+
+} catch (error) {
+  console.error("Error:", error.message);
+  alert("Error: " + error.message);
+}
 
       if (!orderRes.ok) {
         const txt = typeof orderRes.text === 'function' ? await orderRes.text().catch(() => '') : '';
