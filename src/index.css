@@ -1,17 +1,44 @@
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
   font-weight: 400;
 
-  /* Prefer dark theme by default */
-  color-scheme: dark;
+  /* Modern color palette */
+  color-scheme: light dark;
   --bg: #000000;
-  --surface: #0b0b0b;
-  --muted: #bfc7cd;
-  --accent: #7c3aed;
-  --accent-2: #6d28d9;
-  --text: #ffffff;
-  color: var(--text);
+  --surface: #1a1a1a;
+  --surface-alt: #2a2a2a;
+  --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  
+  /* Modern accent colors */
+  --accent: #ff6b35;
+  --accent-hover: #e85a2a;
+  --accent-light: #ffebdc;
+  --secondary: #4f46e5;
+  --secondary-hover: #4338ca;
+  
+  /* Semantic colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  
+  /* Borders and shadows */
+  --border: #e5e7eb;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+  
+  /* Dark mode */
+  --dark-bg: #000000;
+  --dark-surface: #1a1a1a;
+  --dark-surface-alt: #2a2a2a;
+  --dark-text: #f1f5f9;
+  --dark-text-secondary: #cbd5e1;
+  --dark-text-muted: #94a3b8;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -22,50 +49,168 @@
 a {
   font-weight: 500;
   color: var(--accent);
-  text-decoration: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 a:hover {
-  color: var(--accent-2);
+  color: var(--accent-hover);
+  text-decoration: underline;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--bg, #000);
-  color: var(--text, #ffffff);
+  background: var(--bg);
+  color: var(--text);
   font-family: inherit;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--dark-bg);
+    --surface: var(--dark-surface);
+    --surface-alt: var(--dark-surface-alt);
+    --text: var(--dark-text);
+    --text-secondary: var(--dark-text-secondary);
+    --text-muted: var(--dark-text-muted);
+    --border: #404040;
+  }
 }
 
 /* Layout helper: ensure footer stays at bottom when content is short */
-.app-root{display:flex;flex-direction:column;min-height:100vh}
-.app-content{flex:1}
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-content {
+  flex: 1;
+}
 
 h1 {
-  font-size: 3.2em;
+  font-size: 2.5rem;
   line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 1rem;
+  color: var(--text);
+}
+
+h2 {
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 1rem;
+  color: var(--text);
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--text);
+}
+
+h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+h5 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: var(--text);
 }
 
 button {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--surface);
-  color: #fff;
+  background-color: var(--accent);
+  color: #ffffff;
   cursor: pointer;
-  transition: border-color 0.25s, transform 0.12s;
-}
-button:hover {
-  border-color: rgba(255,255,255,0.06);
-  transform: translateY(-1px);
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-/* Keep dark theme globally. If you want automatic switching, adjust here. */
+button:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+  background-color: var(--surface);
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Utility classes */
+.muted {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.success {
+  color: var(--success);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
 

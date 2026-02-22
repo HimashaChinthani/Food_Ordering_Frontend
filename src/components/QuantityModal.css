@@ -1,9 +1,115 @@
-.qm-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:1200}
-.qm-modal{width:320px;max-width:92%;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));border-radius:10px;padding:18px;box-shadow:0 6px 18px rgba(0,0,0,0.6);color:#fff}
-.qm-modal h3{margin:0 0 10px 0;font-size:1.05rem}
-.qm-body{display:flex;justify-content:center;margin-bottom:12px}
-.qm-input{width:120px;padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.35);color:#fff;font-size:1rem;text-align:center}
-.qm-actions{display:flex;gap:8px;justify-content:flex-end}
-.qm-btn{padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;font-weight:600}
-.qm-confirm{background:linear-gradient(90deg,#7b2eff,#a23bff);color:#fff}
-.qm-cancel{background:transparent;color:#cfd8dc}
+.qm-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1200;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.qm-modal {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: var(--shadow-xl);
+  color: var(--text);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.qm-modal h3 {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+  color: var(--text);
+}
+
+.qm-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.qm-input {
+  width: 140px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 1.1rem;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.qm-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.qm-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.qm-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.qm-confirm {
+  background: linear-gradient(135deg, var(--accent), var(--secondary));
+  color: #ffffff;
+  border: none;
+  box-shadow: var(--shadow-md);
+}
+
+.qm-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.qm-cancel {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.qm-cancel:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--accent);
+}

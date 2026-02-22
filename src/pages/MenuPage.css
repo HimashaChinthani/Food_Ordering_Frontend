@@ -1,13 +1,96 @@
-.menu-page{width:100%;background:transparent;padding:28px 16px}
-.menu-container{max-width:1200px;margin:0 auto}
-.menu-controls{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
-.page-title{margin:0;font-size:1.6rem;color:#11303f}
-.controls-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.current-section{margin-top:8px;color:#556b78;font-weight:700}
-.menu-content{display:block;gap:20px}
-.menu-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-.empty{color:#666;padding:24px}
+.menu-page {
+  width: 100%;
+  background: var(--bg);
+  padding: 2rem 1.5rem;
+}
 
-@media(max-width:980px){
-  .menu-content{display:block}
+.menu-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.menu-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  background: var(--surface);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-title {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.controls-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.current-section {
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.menu-content {
+  display: block;
+}
+
+.menu-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.empty {
+  color: var(--text-secondary);
+  padding: 3rem 2rem;
+  text-align: center;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 2px dashed var(--border);
+}
+
+@media (max-width: 980px) {
+  .menu-content {
+    display: block;
+  }
+
+  .menu-list {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .menu-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .menu-controls {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .menu-list {
+    grid-template-columns: 1fr;
+  }
 }

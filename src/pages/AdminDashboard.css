@@ -1,74 +1,79 @@
-.admin-root{max-width:1100px;margin:28px auto;padding:18px}
-.admin-hero{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-.admin-hero h2{margin:0}
-.muted{color:#667}
-.admin-stats{display:flex;gap:12px}
-.stat{background:var(--surface);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);text-align:center}
-.stat .value{font-weight:800;color:#11303f}
-.stat .label{color:#889;font-size:0.9rem}
-
-/* Make Menu Items stat more prominent */
-.stat.items .value{font-size:1.3rem;color:#0b6b66;font-weight:900}
-.stat.items .label{font-size:0.95rem;color:#2f6f6a}
-
-/* Prominent pending orders stat */
-.stat.pending{background:linear-gradient(90deg, rgba(255,243,224,0.9), rgba(255,250,240,0.8));border:1px solid rgba(243,156,18,0.15);box-shadow:0 6px 18px rgba(243,156,18,0.06)}
-.stat.pending .value{color:#d35400;font-weight:900;font-size:1.25rem}
-.stat.pending .label{color:#8a5a2b;font-size:0.95rem}
-
-/* Revenue highlight - bold and green to stand out */
-.stat .value.revenue-value{color:#0b8a2e;font-size:1.35rem;font-weight:900;text-shadow:0 1px 0 rgba(0,0,0,0.04)}
-.actions{margin-left:12px}
-.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:16px}
-.item-card{background:var(--surface);border-radius:12px;border:1px solid rgba(255,255,255,0.04);overflow:hidden;display:flex;flex-direction:column}
-.item-card img{width:100%;height:160px;object-fit:cover}
-.item-body{padding:12px;display:flex;flex-direction:column;gap:8px}
-.title-row{display:flex;justify-content:space-between;align-items:center}
-.price{color:var(--accent);font-weight:800}
-.desc{color:#556b78;font-size:0.95rem}
-.meta{font-size:0.85rem;color:#889}
-.card-actions{display:flex;gap:8px;margin-top:6px}
-.btn.small{padding:6px 8px;font-size:0.85rem}
-.btn.danger{background:transparent;color:var(--accent);border:1px solid rgba(124,58,237,0.12)}
-
-.modal-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:9999;background:linear-gradient(180deg, rgba(2,6,23,0.45), rgba(2,6,23,0.35));backdrop-filter: blur(6px);}
-.modal{background:linear-gradient(180deg, rgba(255,255,255,0.86), rgba(250,251,253,0.94));padding:22px;border-radius:14px;min-width:320px;max-width:880px;box-shadow:0 30px 80px rgba(8,12,20,0.2);border:1px solid rgba(255,255,255,0.7);box-sizing:border-box}
-.modal-card{width:100%;max-width:880px}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.modal-header h3{margin:0;font-size:1.15rem;color:#0f1720;font-weight:800}
-.close-btn{background:transparent;border:0;color:#455a64;font-size:18px;cursor:pointer;padding:6px;border-radius:8px}
-.close-btn:hover{background:rgba(0,0,0,0.04)}
-.modal-available{background:linear-gradient(90deg, rgba(123,46,255,0.08), rgba(162,59,255,0.06));padding:8px 12px;border-radius:999px;font-weight:800;color:#23333a;font-size:0.95rem;border:1px solid rgba(124,58,237,0.06)}
-.modal-available .avail-count{display:inline-block;background:linear-gradient(90deg,#7b2eff,#a23bff);padding:6px 10px;border-radius:999px;margin-left:8px;font-weight:800;color:#fff}
-.quantity-input{max-width:160px}
-.admin-form{display:flex;flex-direction:column;gap:14px}
-.form-grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
-.form-grid .col{display:flex;flex-direction:column;gap:12px}
-.label{font-size:0.9rem;color:#54666f;font-weight:700}
-.input,.select,.textarea{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(18,22,26,0.06);background:linear-gradient(180deg,#fff,#f8fafc);color:#0b1320;box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
-.modal .input,.modal .select,.modal .textarea{background:linear-gradient(180deg,#fff,#f8fafc);color:#0b1320}
-.input::placeholder,.textarea::placeholder{color:#9aa9b1}
-.select{appearance:none}
-.textarea{min-height:120px;resize:vertical}
-.file-drop{display:flex;flex-direction:column;gap:12px}
-.file-input{color:transparent}
-.img-preview{width:100%;height:220px;border-radius:12px;overflow:hidden;border:1px dashed rgba(16,24,32,0.06);display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#ffffff,#fafbfc)}
-.img-preview img{width:100%;height:100%;object-fit:cover;display:block}
-.no-img{color:#647d86;font-size:0.95rem}
-.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
-.btn.primary{background:linear-gradient(90deg,#7b2eff,#a23bff);color:#fff;box-shadow:0 10px 30px rgba(124,44,255,0.12);border-radius:12px;padding:10px 16px}
-.btn.primary:hover{transform:translateY(-1px)}
-.btn.outline{background:transparent;border:1px solid rgba(18,22,26,0.06);color:#0f1720;padding:10px 14px;border-radius:10px}
-.img-preview:hover{box-shadow:0 10px 30px rgba(16,24,32,0.06);transform:translateY(-2px);transition:all .18s ease}
-
-@media(max-width:800px){
-  .admin-stats{flex-direction:column}
+.admin-root {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 1.5rem;
 }
 
-/* Make the form grid stack on small screens so the modal fits comfortably */
-@media (max-width:720px) {
-  .form-grid { grid-template-columns: 1fr !important; }
-  .img-preview { height: 200px; }
-  .modal { padding: 14px; border-radius:10px; }
+.admin-hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
 }
+
+.admin-hero h2 {
+  margin: 0;
+  color: var(--text);
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+.admin-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.stat {
+  background: var(--surface);
+  padding: 1.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+  flex: 1;
+  min-width: 200px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.stat:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.stat .value {
+  font-weight: 800;
+  color: var(--accent);
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat .label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Stat variants */
+.stat.pending {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.stat.pending .value {
+  color: var(--warning);
+}
+
+.stat.pending:hover {
+  border-color: var(--warning);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.08));
+}
+
+.stat.success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  border: 1px solid rgba(16, 185, 129, 0.2);\n}\n\n.stat.success .value {\n  color: var(--success);\n}\n\n.stat.success:hover {\n  border-color: var(--success);\n  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));\n}\n\n.actions {\n  margin-left: 1rem;\n}\n\n.items-grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));\n  gap: 1.5rem;\n  margin-top: 2rem;\n}\n\n.item-card {\n  background: var(--surface);\n  border-radius: 12px;\n  border: 1px solid var(--border);\n  overflow: hidden;\n  display: flex;\n  flex-direction: column;\n  box-shadow: var(--shadow-sm);\n  transition: all 0.2s ease;\n}\n\n.item-card:hover {\n  box-shadow: var(--shadow-lg);\n  transform: translateY(-4px);\n  border-color: var(--accent);\n}\n\n.item-card img {\n  width: 100%;\n  height: 180px;\n  object-fit: cover;\n}\n\n.item-body {\n  padding: 1.25rem;\n  display: flex;\n  flex-direction: column;\n  gap: 0.75rem;\n  flex-grow: 1;\n}\n\n.title-row {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  gap: 1rem;\n}\n\n.title-row h4 {\n  margin: 0;\n  color: var(--text);\n  font-size: 1.05rem;\n}\n\n.price {\n  color: var(--accent);\n  font-weight: 800;\n  font-size: 1.15rem;\n}\n\n.desc {\n  color: var(--text-secondary);\n  font-size: 0.9rem;\n  line-height: 1.4;\n}\n\n.meta {\n  font-size: 0.85rem;\n  color: var(--text-muted);\n}\n\n.card-actions {\n  display: flex;\n  gap: 0.75rem;\n  margin-top: auto;\n}\n\n.btn {\n  flex: 1;\n  padding: 0.65rem 0.75rem;\n  border-radius: 6px;\n  border: 1px solid var(--border);\n  background: transparent;\n  color: var(--text-secondary);\n  cursor: pointer;\n  font-weight: 600;\n  font-size: 0.85rem;\n  transition: all 0.2s ease;\n}\n\n.btn:hover {\n  border-color: var(--accent);\n  color: var(--accent);\n  background: var(--accent-light);\n}\n\n.btn.small {\n  padding: 0.5rem 1rem;\n  font-size: 0.85rem;\n}\n\n.btn.danger {\n  color: var(--danger);\n}\n\n.btn.danger:hover {\n  border-color: var(--danger);\n  background: rgba(239, 68, 68, 0.1);\n}\n\n/* Modal Styles */\n.modal-overlay {\n  position: fixed;\n  inset: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 1.5rem;\n  z-index: 9999;\n  background: rgba(0, 0, 0, 0.5);\n  animation: fadeIn 0.2s ease;\n}\n\n@keyframes fadeIn {\n  from {\n    opacity: 0;\n  }\n  to {\n    opacity: 1;\n  }\n}\n\n.modal {\n  background: var(--surface);\n  padding: 2rem;\n  border-radius: 14px;\n  min-width: 320px;\n  max-width: 880px;\n  box-shadow: var(--shadow-xl);\n  border: 1px solid var(--border);\n  animation: slideIn 0.3s ease;\n}\n\n@keyframes slideIn {\n  from {\n    opacity: 0;\n    transform: translateY(-20px);\n  }\n  to {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n.modal-card {\n  width: 100%;\n}\n\n.modal-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  margin-bottom: 1.5rem;\n  padding-bottom: 1rem;\n  border-bottom: 2px solid var(--border);\n}\n\n.modal-header h3 {\n  margin: 0;\n  font-size: 1.25rem;\n  color: var(--text);\n  font-weight: 700;\n}\n\n.close-btn {\n  background: transparent;\n  border: 0;\n  color: var(--text-secondary);\n  font-size: 1.5rem;\n  cursor: pointer;\n  padding: 0.5rem;\n  border-radius: 8px;\n  transition: all 0.2s ease;\n}\n\n.close-btn:hover {\n  background: var(--surface-alt);\n  color: var(--text);\n}\n\n.modal-available {\n  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(162, 59, 255, 0.05));\n  padding: 1rem 1.25rem;\n  border-radius: 10px;\n  font-weight: 700;\n  color: var(--accent);\n  font-size: 0.95rem;\n  border: 1px solid rgba(124, 58, 237, 0.2);\n  margin-bottom: 1.5rem;\n}\n\n.modal-available .avail-count {\n  display: inline-block;\n  background: linear-gradient(135deg, var(--accent), var(--secondary));\n  padding: 0.5rem 1rem;\n  border-radius: 999px;\n  margin-left: 1rem;\n  font-weight: 800;\n  color: #ffffff;\n}\n\n.quantity-input {\n  max-width: 160px;\n}\n\n.admin-form {\n  display: flex;\n  flex-direction: column;\n  gap: 1.5rem;\n}\n\n.form-grid {\n  display: grid;\n  grid-template-columns: 1fr 360px;\n  gap: 2rem;\n}\n\n.form-grid .col {\n  display: flex;\n  flex-direction: column;\n  gap: 1.5rem;\n}\n\n.label {\n  font-size: 0.9rem;\n  color: var(--text-secondary);\n  font-weight: 700;\n}\n\n.input,\n.select,\n.textarea {\n  width: 100%;\n  padding: 0.75rem 1rem;\n  border-radius: 10px;\n  border: 1px solid var(--border);\n  background: var(--surface-alt);\n  color: var(--text);\n  font-family: inherit;\n  font-size: 0.95rem;\n  transition: all 0.2s ease;\n}\n\n.input:focus,\n.select:focus,\n.textarea:focus {\n  outline: none;\n  border-color: var(--accent);\n  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);\n}\n\n.input::placeholder,\n.textarea::placeholder {\n  color: var(--text-muted);\n}\n\n.select {\n  appearance: none;\n  background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667' d='M6 9L1 4h10z'/%3E%3C/svg%3E\");\n  background-repeat: no-repeat;\n  background-position: right 1rem center;\n  padding-right: 2.5rem;\n}\n\n.textarea {\n  min-height: 120px;\n  resize: vertical;\n}\n\n.file-drop {\n  display: flex;\n  flex-direction: column;\n  gap: 1.5rem;\n}\n\n.file-input {\n  color: transparent;\n}\n\n.img-preview {\n  width: 100%;\n  height: 220px;\n  border-radius: 12px;\n  overflow: hidden;\n  border: 2px dashed var(--border);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: var(--surface-alt);\n  transition: all 0.2s ease;\n}\n\n.img-preview img {\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  display: block;\n}\n\n.img-preview:hover {\n  border-color: var(--accent);\n  box-shadow: var(--shadow-md);\n}\n\n.no-img {\n  color: var(--text-muted);\n  font-size: 0.95rem;\n}\n\n.modal-actions {\n  display: flex;\n  justify-content: flex-end;\n  gap: 1rem;\n  margin-top: 2rem;\n  padding-top: 1.5rem;\n  border-top: 1px solid var(--border);\n}\n\n.btn.primary {\n  background: linear-gradient(135deg, var(--accent), var(--secondary));\n  color: #ffffff;\n  box-shadow: var(--shadow-md);\n  border-radius: 10px;\n  padding: 0.75rem 1.75rem;\n}\n\n.btn.primary:hover {\n  transform: translateY(-2px);\n  box-shadow: var(--shadow-lg);\n}\n\n.btn.outline {\n  background: transparent;\n  border: 1px solid var(--border);\n  color: var(--text-secondary);\n  padding: 0.65rem 1.25rem;\n  border-radius: 10px;\n}\n\n.btn.outline:hover {\n  border-color: var(--accent);\n  color: var(--accent);\n  background: var(--accent-light);\n}\n\n@media (max-width: 900px) {\n  .admin-stats {\n    flex-direction: column;\n  }\n\n  .stat {\n    min-width: unset;\n  }\n}\n\n@media (max-width: 800px) {\n  .admin-root {\n    padding: 1rem;\n  }\n\n  .items-grid {\n    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));\n    gap: 1rem;\n  }\n}\n\n@media (max-width: 720px) {\n  .form-grid {\n    grid-template-columns: 1fr;\n  }\n\n  .img-preview {\n    height: 200px;\n  }\n\n  .modal {\n    padding: 1.5rem;\n    border-radius: 12px;\n    max-width: 90vw;\n  }\n\n  .modal-actions {\n    flex-direction: column;\n  }\n\n  .btn.primary,\n  .btn.outline {\n    width: 100%;\n    text-align: center;\n  }\n}\n
 
