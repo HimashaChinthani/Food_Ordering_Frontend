@@ -292,11 +292,33 @@ export default function AdminOrders() {
       if (!window.confirm(`Unassign driver ${driverId} from order ${orderId}?`)) return;
 
       try {
-        const res = await fetch(`${API}/unassigndriver/${encodeURIComponent(orderId)}`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ driverId }),
-        });
+        try {
+  const res = await fetch(
+    `${API}/unassigndriver/${encodeURIComponent(orderId)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ driverId }),
+    }
+  );
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || "Failed to unassign driver");
+  }
+
+  alert("Driver unassigned successfully!");
+
+  // Optional: refresh page
+  window.location.reload();
+
+} catch (error) {
+  console.error("Error:", error.message);
+  alert("Error: " + error.message);
+}
 
         if (!res.ok) {
           const txt = await res.text().catch(() => '');
@@ -352,7 +374,7 @@ export default function AdminOrders() {
         loadAvailableDrivers();
       } catch (err) {
         console.error('Failed to unassign driver', err);
-        alert('Failed to unassign driver: ' + (err.message || err));
+       
       }
     };
 
