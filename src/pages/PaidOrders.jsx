@@ -86,7 +86,36 @@ const PaidOrders = () => {
         ? data
         : (data.orders || (data.data && Array.isArray(data.data) ? data.data : [data]));
 
-      setPaidOrders(Array.isArray(arr) ? arr : []);
+      // Parse items from each order if they're JSON strings
+      const ordersWithParsedItems = arr.map(order => {
+        let items = [];
+        
+        // Try to extract items from various field names
+        const itemsData = order.items || order.orderItems || order.products || null;
+        
+        if (itemsData) {
+          // If it's a string, parse it as JSON
+          if (typeof itemsData === 'string') {
+            try {
+              items = JSON.parse(itemsData);
+              console.log('Parsed items from string:', items);
+            } catch (e) {
+              console.error('Failed to parse items JSON:', e);
+              items = [];
+            }
+          } else if (Array.isArray(itemsData)) {
+            items = itemsData;
+          }
+        }
+        
+        return {
+          ...order,
+          items: items
+        };
+      });
+
+      console.log('Orders with parsed items:', ordersWithParsedItems);
+      setPaidOrders(Array.isArray(ordersWithParsedItems) ? ordersWithParsedItems : []);
     } catch (err) {
       console.error('Failed to load paid orders', err);
       setError('Failed to load paid orders');
@@ -297,8 +326,14 @@ const PaidOrders = () => {
 
                   let itemsList = [];
                   try {
+                    // Items should already be parsed from fetchPaidOrders
                     itemsList = Array.isArray(o.items) ? o.items : [];
-                  } catch (e) { }
+                  } catch (e) {
+                    console.error('Error extracting items:', e);
+                    itemsList = [];
+                  }
+                  
+                  console.log('Displaying order items:', itemsList);
 
                   const orderStatus = (o.status || o.order_status || o.paymentStatus || 'Paid').toLowerCase();
 
@@ -379,29 +414,42 @@ const PaidOrders = () => {
                           <p className="muted">No driver assigned to this order</p>
                         </div>
                       )}
-                      {itemsList.length > 0 && (
-                        <>
-                          <h4 style={{ marginTop: 20 }}>Items</h4>
+
+                      <div style={{ marginTop: 25, borderTop: '2px solid #eee', paddingTop: 15 }}>
+                        <h4>Order Items ({itemsList.length})</h4>
+                        {itemsList.length > 0 ? (
                           <div style={{ margin: '10px 0' }}>
-                            {itemsList.map((it, idx) => (
-                              <div
-                                key={idx}
-                                className="summary-row"
-                                style={{ fontSize: '0.9em', borderBottom: '1px solid #eee' }}
-                              >
-                                <span>
-                                  {it.name || it.itemName || `Item ${idx + 1}`} x{it.qty || it.quantity || 1}
-                                </span>
-                                <strong>
-                                  {fmt(
-                                    ((it.price || it.itemPrice || 0) * (it.qty || it.quantity || 1))
-                                  )}
-                                </strong>
-                              </div>
-                            ))}
+                            {itemsList.map((it, idx) => {
+                              const itemName = it.name || it.itemName || it.productName || it.product_name || `Item ${idx + 1}`;
+                              const itemQty = it.qty || it.quantity || it.count || 1;
+                              const itemPrice = it.price || it.itemPrice || it.productPrice || it.product_price || 0;
+                              const itemTotal = (itemPrice * itemQty);
+                              
+                              return (
+                                <div
+                                  key={idx}
+                                  className="summary-row"
+                                  style={{ 
+                                    fontSize: '0.95em', 
+                                    borderBottom: '1px solid #f0f0f0',
+                                    paddingBottom: 8
+                                  }}
+                                >
+                                  <div style={{ flex: 1 }}>
+                                    <strong>{itemName}</strong>
+                                    <div style={{ fontSize: '0.85em', color: '#666', marginTop: 4 }}>
+                                      {fmt(itemPrice)} × {itemQty} = {fmt(itemTotal)}
+                                    </div>
+                                  </div>
+                                  <strong>{fmt(itemTotal)}</strong>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </>
-                      )}
+                        ) : (
+                          <p className="muted" style={{ marginTop: 10 }}>No items in this order</p>
+                        )}
+                      </div>
                       <div className="summary-row" style={{ marginTop: 15, fontWeight: 'bold' }}>
                         <span>Total</span>
                         <strong>{fmt(o.totalAmount)}</strong>
