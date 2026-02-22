@@ -314,11 +314,15 @@ const CartPage = () => {
     <main className="cart-page orders-only">
       <div className="container">
         <div className="orders-header">
-          <h2>My Orders</h2>
+          <div>
+            <h2>My Orders</h2>
+            {items && items.length > 0 && <p className="cart-items-count">Cart Items: {items.length}</p>}
+          </div>
           <div className="orders-actions">
             <button className="btn outline" onClick={() => {
               const raw = localStorage.getItem('user'); if (!raw) return; try { fetchOrders(JSON.parse(raw)); } catch(e){}
             }} disabled={ordersLoading}>{ordersLoading ? 'Refreshing...' : 'Refresh'}</button>
+            <button className="btn outline" onClick={() => navigate('/paid-orders')}>View Paid Orders</button>
             <button className="btn primary" onClick={handlePayAllOrders} disabled={ordersLoading || payAllLoading || orders.length===0}>
               {payAllLoading ? `Processing (${orders.length})...` : 'Pay All Orders'}
             </button>

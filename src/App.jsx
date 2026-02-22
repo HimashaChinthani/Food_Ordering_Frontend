@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import MenuPage from './pages/MenuPage';
 import MenuItemDetail from './pages/MenuItemDetail';
 import CartPage from './pages/CartPage';
+import PaidOrders from './pages/PaidOrders';
 import MainLanding from './pages/MainLanding';
 import About from './pages/About';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -91,6 +92,7 @@ function InnerApp() {
           <Route path="/menu" element={<RequireAuth><MenuPage /></RequireAuth>} />
           <Route path="/menu/:id" element={<RequireAuth><MenuItemDetail /></RequireAuth>} />
           <Route path="/cart" element={<RequireAuth><CartPage /></RequireAuth>} />
+          <Route path="/paid-orders" element={<RequireAuth><PaidOrders /></RequireAuth>} />
           <Route path="/payment-success" element={<RequireAuth><PaymentSuccess /></RequireAuth>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

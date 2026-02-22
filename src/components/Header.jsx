@@ -5,7 +5,6 @@ import { useCart } from '../context/CartContext';
 
 const Header = () => {
 	const { items } = useCart();
-	const cartCount = (items || []).reduce((s, it) => s + (parseInt(it.qty, 10) || 1), 0);
 	const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 	const [user, setUser] = useState(null);
 	const [open, setOpen] = useState(false);
@@ -105,10 +104,7 @@ const Header = () => {
 							<>
 								<Link to="/home">Home</Link>
 										<Link to="/menu">Menu</Link>
-										{(() => {
-											const displayCount = (pendingOrdersCount && pendingOrdersCount > 0) ? pendingOrdersCount : cartCount;
-											return <Link to="/cart" className="cart-link">Cart{displayCount>0 && <span className="badge">{displayCount}</span>}</Link>;
-										})()}
+										<Link to="/cart" className="cart-link">Cart{pendingOrdersCount > 0 && <span className="badge">{pendingOrdersCount}</span>}</Link>
 							</>
 						)}
 					</div>
