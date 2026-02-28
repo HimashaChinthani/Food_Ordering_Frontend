@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import "./RegisterPage.css";
 
 const RegisterPage = ({ onSwitchToLogin }) => {
@@ -128,9 +129,9 @@ const RegisterPage = ({ onSwitchToLogin }) => {
 
           <p>
             Already have an account?{" "}
-            <span className="link" onClick={onSwitchToLogin}>
+            <Link to="/login" className="link">
               Login
-            </span>
+            </Link>
           </p>
         </div>
       </div>

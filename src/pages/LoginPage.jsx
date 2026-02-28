@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import "./LoginPage.css";
 
 const LoginPage = ({ onSwitchToRegister }) => {
@@ -71,13 +71,7 @@ const LoginPage = ({ onSwitchToRegister }) => {
             <button type="submit">Login</button>
           </form>
           <p>
-            Don’t have an account?{" "}
-            <span
-              className="link"
-              onClick={() => onSwitchToRegister && onSwitchToRegister()}
-            >
-              Sign Up
-            </span>
+            Don’t have an account? <Link to="/register" className="link">Sign Up</Link>
           </p>
         </div>
       </div>

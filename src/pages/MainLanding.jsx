@@ -17,7 +17,7 @@ const MainLanding = () => {
               <div className="sub">Taste the difference — explore local favorites</div>
               <p className="lead">Filter by cuisine, discover chef specials, and get piping hot meals to your door.</p>
 
-              <form className="hero-search" onSubmit={(e)=>{e.preventDefault(); window.location.href='/menu'}}>
+              <form className="hero-search" onSubmit={(e)=>{e.preventDefault(); window.location.href='/login'}}>
                 <input aria-label="Search menu" placeholder="Search dishes, restaurants or cuisines" />
                 <button className="btn primary" type="submit">Order Now</button>
               </form>
