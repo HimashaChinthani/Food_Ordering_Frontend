@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './CartPage.css';
+import axios from "axios";
 
 const CartPage = () => {
   const { items, remove, changeQty, clear } = useCart();
@@ -115,86 +116,31 @@ const CartPage = () => {
     if (!o) return;
     setCheckoutLoading(true);
     try {
-      const userRaw = localStorage.getItem('user');
-      const user = userRaw ? JSON.parse(userRaw) : null;
       let itemsList = [];
       try { itemsList = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch (e) { itemsList = []; }
 
       // compute total if not present
       const computedTotal = itemsList.reduce((s, it) => s + (parseFloat(it.price) || 0) * (it.qty || 1), 0);
+      const totalAmount = parseFloat(o.totalAmount) || computedTotal;
+      const finalAmount = totalAmount.toFixed(2);
 
-      // normalize the user id the backend expects in `user_id` column
-      const rawUserId = user ? (user.id ?? user._id ?? user.userId) : null;
-      // if it's numeric-like, send as Number; otherwise keep string (Mongo _id etc.)
-      const normalizedUserId = rawUserId != null && String(rawUserId).match(/^\d+$/) ? Number(rawUserId) : rawUserId;
-
-      const payload = {
-        orderId: o.orderId ?? o.id ?? null,
-        customerName: o.customerName ?? (user && (user.name || user.fullName || user.username)) ?? '',
-        customerEmail: o.customerEmail ?? user?.email ?? '',
-        status: 'COMPLETED',
-        totalAmount: parseFloat(o.totalAmount) || computedTotal,
-        orderDate: o.orderDate ?? new Date().toISOString(),
-        items: JSON.stringify(itemsList),
-        // backend expects `user_id` column; send snake_case key to match DTO mapping
-        user_id: normalizedUserId,
-      };
-
-      // debug logs: show current user and the exact payload being sent
-      console.log('checkout user (from localStorage):', user);
-      console.log('checkout payload (sent):', payload);
-
-      const res = await fetch('http://localhost:8082/api/v3/paid-orders/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      // try to read response body as text first (some servers return HTML or plain text on 500)
-      const rawText = await res.text().catch(() => null);
-      let data = null;
-      try { data = rawText ? JSON.parse(rawText) : null; } catch (e) { data = null; }
-      if (!res.ok) {
-        const errMsg = (data && (data.message || data.error)) || (rawText && rawText.substring(0, 100)) || `Server ${res.status}`;
-        // show more detailed info in console for debugging
-        console.error('Checkout server error response:', { status: res.status, rawText, parsed: data });
-        alert('Failed to save payment: ' + errMsg);
-        return;
-      }
-
-
-      // navigate to success page with payment info
-      console.log('Payment saved, attempting to update order status to COMPLETED.', data);
-      try {
-        const returnedOrderId = (data && (data.orderId ?? data.order_id)) ?? (o.orderId ?? o.id ?? null);
-        if (returnedOrderId) {
-          const updateUrl = `http://localhost:8082/api/v3/updatestatus/${encodeURIComponent(returnedOrderId)}`;
-          console.log('Updating order status using URL:', updateUrl);
-          const updRes = await fetch(updateUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'COMPLETED' })
-          });
-          const updText = await updRes.text().catch(() => '');
-          if (!updRes.ok) {
-            console.warn('Failed to update order status after payment:', returnedOrderId, updRes.status, updText);
-          } else {
-            console.log('Order status updated to COMPLETED for order:', returnedOrderId, updText);
-          }
-        } else {
-          console.warn('No order id available to update status for order', o);
-        }
-      } catch (e) {
-        console.error('Error updating order status after payment', e);
-      }
-
-      // navigate to success page with payment info
-      navigate('/payment-success', { state: { payment: data } });
+      const res = await axios.post(
+        `http://localhost:8082/api/payments/paypal/create?amount=${finalAmount}`,
+        { timeout: 30000 } // 30 second timeout
+      );
+  
+      // Redirect user to PayPal payment page
+      setCheckoutLoading(false); // Stop loading before redirect
+      setCheckoutLoading(true); // Show redirecting message
+      window.location.href = res.data;
 
     } catch (err) {
       console.error('Checkout error', err);
-      alert('Checkout error: ' + (err.message || err));
-    } finally {
+      if (err.code === 'ECONNABORTED') {
+        alert('Payment initiation timed out. Please check your connection and try again.');
+      } else {
+        alert('Checkout error: ' + (err.message || err));
+      }
       setCheckoutLoading(false);
     }
   }
@@ -204,109 +150,24 @@ const CartPage = () => {
     if (!orders || orders.length === 0) return;
     if (!window.confirm(`Proceed to pay ${orders.length} order(s)?`)) return;
     setPayAllLoading(true);
-    const successes = [];
-    const failures = [];
-
-    // prepare batched payloads and combined items list
-    const payloads = [];
-    const combinedItems = [];
-    for (const o of orders) {
-      try {
-        let itemsList = [];
-        try { itemsList = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []); } catch (e) { itemsList = []; }
-        const computedTotal = itemsList.reduce((s, it) => s + (parseFloat(it.price) || 0) * (it.qty || 1), 0);
-
-        // include source order id on each item for traceability
-        for (const it of itemsList) combinedItems.push({ ...(it || {}), fromOrderId: o.orderId ?? o.id ?? null });
-
-        const raw = localStorage.getItem('user');
-        const user = raw ? JSON.parse(raw) : null;
-        const rawUserId = user ? (user.id ?? user._id ?? user.userId) : null;
-        const normalizedUserId = rawUserId != null && String(rawUserId).match(/^\d+$/) ? Number(rawUserId) : rawUserId;
-
-        payloads.push({
-          orderId: o.orderId ?? o.id ?? null,
-          customerName: o.customerName ?? (user && (user.name || user.fullName || user.username)) ?? '',
-          customerEmail: o.customerEmail ?? user?.email ?? '',
-          status: 'COMPLETED',
-          totalAmount: parseFloat(o.totalAmount) || computedTotal,
-          orderDate: o.orderDate ?? new Date().toISOString(),
-          items: itemsList,
-          user_id: normalizedUserId,
-        });
-      } catch (err) {
-        failures.push({ order: o, error: err.message || err });
-        console.error('pay all payload build error for order', o, err);
-      }
-    }
-
-    console.log('pay-all batched payloads:', payloads);
-
-    // send batched request
     try {
-      const res = await fetch('http://localhost:8082/api/v3/pay-multiple', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloads),
-      });
-
-      const rawText = await res.text().catch(() => null);
-      let respData = null;
-      try { respData = rawText ? JSON.parse(rawText) : null; } catch (e) { respData = null; }
-
-      if (!res.ok) {
-        console.error('pay-multiple server error', { status: res.status, rawText, parsed: respData });
-        for (const o of orders) failures.push({ order: o, status: res.status, body: rawText || respData });
+      const finalAmount = grandTotal.toFixed(2);
+      const res = await axios.post(
+        `http://localhost:8082/api/payments/paypal/create?amount=${finalAmount}`,
+        { timeout: 30000 } // 30 second timeout
+      );
+  
+      // Redirect user to PayPal payment page
+      window.location.href = res.data;
+    } catch (error) {
+      console.error("Error creating PayPal payment:", error);
+      if (error.code === 'ECONNABORTED') {
+        alert('Payment initiation timed out. Please check your connection and try again.');
       } else {
-        const savedList = Array.isArray(respData) ? respData : (respData ? (respData.saved || [respData]) : []);
-        for (const s of savedList) successes.push(s);
-
-        // best-effort update of order statuses
-        for (const o of orders) {
-          try {
-            const returnedOrderId = o.orderId ?? o.id ?? null;
-            if (returnedOrderId) {
-              const updateUrl = `http://localhost:8082/api/v3/updatestatus/${encodeURIComponent(returnedOrderId)}`;
-              const updRes = await fetch(updateUrl, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'COMPLETED' })
-              });
-              if (!updRes.ok) {
-                const updText = await updRes.text().catch(() => '');
-                console.warn('Failed to update order status (pay-multiple):', returnedOrderId, updRes.status, updText);
-              }
-            }
-          } catch (e) {
-            console.error('Error updating order status (pay-multiple)', e);
-          }
-        }
+        alert("Failed to initiate payment. Please try again.");
       }
-    } catch (err) {
-      console.error('pay-multiple unexpected error', err);
-      for (const o of orders) failures.push({ order: o, error: err.message || err });
-    }
-
-    setPayAllLoading(false);
-
-    const ok = successes.length;
-    const bad = failures.length;
-    alert(`Pay All completed: ${ok} succeeded, ${bad} failed` + (bad ? '. Check console for details.' : ''));
-
-    try { const raw = localStorage.getItem('user'); if (raw) fetchOrders(JSON.parse(raw)); } catch(e){}
-
-    // build combined payment to display
-    const combinedPayment = {
-      paymentId: `BATCH-${Date.now()}`,
-      orderId: payloads.map(p => p.orderId).filter(Boolean).join(',') || null,
-      customerName: (payloads[0] && payloads[0].customerName) || 'Multiple Orders',
-      customerEmail: (payloads[0] && payloads[0].customerEmail) || '',
-      status: 'COMPLETED',
-      totalAmount: grandTotal,
-      orderDate: new Date().toISOString(),
-      items: combinedItems,
-    };
-
-    if (successes.length > 0) {
-      navigate('/payment-success', { state: { payment: combinedPayment } });
+    } finally {
+      setPayAllLoading(false);
     }
   }
 

@@ -21,6 +21,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminOrders from './pages/AdminOrders';
 import Profile from './pages/Profile';
+import SuccessPage from './pages/SuccessPage';
+import CancelPage from './pages/CancelPage';
 
 // Simple auth guard that checks for a `user` in localStorage
 const RequireAuth = ({ children }) => {
@@ -94,6 +96,8 @@ function InnerApp() {
           <Route path="/cart" element={<RequireAuth><CartPage /></RequireAuth>} />
           <Route path="/paid-orders" element={<RequireAuth><PaidOrders /></RequireAuth>} />
           <Route path="/payment-success" element={<RequireAuth><PaymentSuccess /></RequireAuth>} />
+          <Route path="/success" element={<RequireAuth><SuccessPage /></RequireAuth>} />
+          <Route path="/cancel" element={<RequireAuth><CancelPage /></RequireAuth>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
