@@ -1,6 +1,7 @@
 // AdminDashboard.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import "./AdminDashboard.css";
+import "./AddItemModal.css";
 
 const API = "http://localhost:8081/api/v2";
 const ORD_API = "http://localhost:8082/api/v3";
@@ -261,40 +262,34 @@ export default function AdminDashboard() {
 
       {showForm && (
         <div className="modal-overlay">
-          <div className="modal modal-card">
+          <div className="add-item-modal">
             <div className="modal-header">
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <h3 style={{margin: 0}}>{form.id ? "Edit Item" : "Add Item"}</h3>
-                <div className="modal-available">Available: <span className="avail-count">{form.quantity ?? 0}</span></div>
-              </div>
-              <button
-                type="button"
-                className="close-btn"
-                onClick={() => setShowForm(false)}
-                aria-label="Close form"
-              >
-                ✕
+              <h3>{form.id ? "Edit Item" : "Add Item"}</h3>
+              <span>Available: {form.quantity || 0}</span>
+              <button onClick={() => setShowForm(false)} className="close-button">
+                &times;
               </button>
             </div>
-
-            <form onSubmit={handleSave} className="admin-form">
-              <div className="form-grid">
-                <div className="col">
-                  <label className="label">Name</label>
+            <div className="modal-body">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="name">NAME</label>
                   <input
                     type="text"
+                    id="name"
                     placeholder="Name"
-                    value={form.name || ""}
+                    value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                    className="input"
                   />
-
-                  <label className="label">Category</label>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="category">CATEGORY</label>
                   <select
-                    value={form.category || "PIZZA"}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="select"
+                    id="category"
+                    value={form.category}
+                    onChange={(e) =>
+                      setForm({ ...form, category: e.target.value })
+                    }
                   >
                     <option value="PIZZA">Pizza</option>
                     <option value="BURGER">Burger</option>
@@ -302,80 +297,75 @@ export default function AdminDashboard() {
                     <option value="SNACKS">Snacks</option>
                     <option value="DESSERT">Dessert</option>
                   </select>
-
-                  <label className="label">Price</label>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="price">PRICE</label>
                   <input
-                    type="number"
+                    type="text"
+                    id="price"
                     placeholder="Price"
-                    value={form.price || ""}
+                    value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    required
-                    className="input"
                   />
-
-                  <label className="label">Available Quantity</label>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="quantity">AVAILABLE QUANTITY</label>
                   <input
                     type="number"
-                    min="0"
-                    placeholder="Quantity"
-                    value={form.quantity ?? 0}
-                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                    className="input quantity-input"
+                    id="quantity"
+                    value={form.quantity}
+                    onChange={(e) =>
+                      setForm({ ...form, quantity: e.target.value })
+                    }
                   />
                 </div>
-
-                <div className="col">
-                  <label className="label">Image</label>
-                  <div className="file-drop">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="image">IMAGE</label>
+                  <input
+                    type="file"
+                    id="image"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
                         const reader = new FileReader();
-                        reader.onload = (evt) =>
-                          setForm({ ...form, image: evt.target.result });
+                        reader.onloadend = () => {
+                          setForm({ ...form, image: reader.result });
+                        };
                         reader.readAsDataURL(file);
-                      }}
-                      className="file-input"
-                    />
-
-                    <div className="img-preview">
-                      {form.image ? (
-                        <img src={form.image} alt="preview" />
-                      ) : (
-                        <div className="no-img">No image selected</div>
-                      )}
-                    </div>
-                  </div>
+                      }
+                    }}
+                  />
+                  {form.image ? (
+                    <img src={form.image} alt="Preview" className="image-preview" />
+                  ) : (
+                    <p>No image selected</p>
+                  )}
                 </div>
               </div>
-
-              <label className="label">Description</label>
-              <textarea
-                placeholder="Description"
-                value={form.description || ""}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                className="textarea"
-              />
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn outline"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </button>
-
-                <button className="btn primary" type="submit">
-                  Save
-                </button>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="description">DESCRIPTION</label>
+                  <textarea
+                    id="description"
+                    placeholder="Description"
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
+                  ></textarea>
+                </div>
               </div>
-            </form>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setShowForm(false)} className="cancel-button">
+                Cancel
+              </button>
+              <button onClick={handleSave} className="save-button">
+                Save
+              </button>
+            </div>
           </div>
         </div>
       )}
