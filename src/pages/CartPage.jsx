@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './CartPage.css';
 import axios from "axios";
+import { persistPendingPayment } from './PayPalSuccessPage';
 
 const CartPage = () => {
   const { items, remove, changeQty, clear } = useCart();
@@ -114,6 +115,13 @@ const CartPage = () => {
 
   async function handleProceedToCheckout(o) {
     if (!o) return;
+    const raw = localStorage.getItem('user');
+    if (!raw) {
+      alert('You must be logged in to proceed to checkout.');
+      return;
+    }
+    const currentUser = JSON.parse(raw);
+
     setCheckoutLoading(true);
     try {
       let itemsList = [];
@@ -123,16 +131,28 @@ const CartPage = () => {
       const computedTotal = itemsList.reduce((s, it) => s + (parseFloat(it.price) || 0) * (it.qty || 1), 0);
       const totalAmount = parseFloat(o.totalAmount) || computedTotal;
       const finalAmount = totalAmount.toFixed(2);
+      const orderId = o.orderId || o.id || o._id;
 
-      const res = await axios.post(
-        `http://localhost:8082/api/payments/paypal/create?amount=${finalAmount}`,
-        { timeout: 30000 } // 30 second timeout
+      const response = await axios.post(
+        'http://localhost:8082/api/payments/paypal/create',
+        {
+          userId: currentUser.id,
+          orderIds: [orderId],  // single order in array
+          amount: finalAmount,
+          paymentMethod: 'PAYPAL'
+        }
       );
-  
-      // Redirect user to PayPal payment page
-      setCheckoutLoading(false); // Stop loading before redirect
-      setCheckoutLoading(true); // Show redirecting message
-      window.location.href = res.data;
+      
+      const approvalUrl = response.data;
+      
+      // Store context before redirect
+      localStorage.setItem('pendingPayment', JSON.stringify({
+        orderIds: [orderId],
+        amount: finalAmount
+      }));
+      
+      // Redirect to PayPal
+      window.location.href = approvalUrl;
 
     } catch (err) {
       console.error('Checkout error', err);
@@ -147,25 +167,49 @@ const CartPage = () => {
 
   // Pay all fetched orders in sequence. This will POST each order as a payment record.
   async function handlePayAllOrders() {
-    if (!orders || orders.length === 0) return;
+    if (!orders || orders.length === 0) {
+      alert('No pending orders to pay');
+      return;
+    }
     if (!window.confirm(`Proceed to pay ${orders.length} order(s)?`)) return;
+    
+    const raw = localStorage.getItem('user');
+    if (!raw) {
+      alert('You must be logged in to pay for orders.');
+      return;
+    }
+    const currentUser = JSON.parse(raw);
+
     setPayAllLoading(true);
     try {
-      const finalAmount = grandTotal.toFixed(2);
-      const res = await axios.post(
-        `http://localhost:8082/api/payments/paypal/create?amount=${finalAmount}`,
-        { timeout: 30000 } // 30 second timeout
+      const totalAmount = orders.reduce((sum, order) => sum + (parseFloat(order.totalAmount) || 0), 0);
+      const orderIds = orders.map(order => order.orderId || order.id || order._id);
+
+      // Create PayPal order
+      const response = await axios.post(
+        'http://localhost:8082/api/payments/paypal/create',
+        {
+          userId: currentUser.id,
+          orderIds: orderIds,
+          amount: totalAmount.toFixed(2),
+          paymentMethod: 'PAYPAL'
+        }
       );
-  
-      // Redirect user to PayPal payment page
-      window.location.href = res.data;
+      
+      const approvalUrl = response.data;
+      
+      // Store context before redirect
+      localStorage.setItem('pendingPayment', JSON.stringify({
+        orderIds: orderIds,
+        amount: totalAmount.toFixed(2)
+      }));
+      
+      // Redirect to PayPal
+      window.location.href = approvalUrl;
+
     } catch (error) {
-      console.error("Error creating PayPal payment:", error);
-      if (error.code === 'ECONNABORTED') {
-        alert('Payment initiation timed out. Please check your connection and try again.');
-      } else {
-        alert("Failed to initiate payment. Please try again.");
-      }
+      console.error('Error creating PayPal payment:', error);
+      alert('Failed to create PayPal payment: ' + (error.message || 'Unknown error'));
     } finally {
       setPayAllLoading(false);
     }
