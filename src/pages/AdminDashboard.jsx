@@ -100,8 +100,24 @@ export default function AdminDashboard() {
   const handleSave = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.price) {
-      alert("Name & Price required");
+    if (
+      !form.name ||
+      !form.price ||
+      !form.category ||
+      !form.description ||
+      !form.image
+    ) {
+      alert("All fields are required.");
+      return;
+    }
+
+    if (Number(form.quantity) <= 0) {
+      alert("Available quantity must be greater than 0.");
+      return;
+    }
+
+    if (isNaN(form.price)) {
+      alert("Price must be a number.");
       return;
     }
 
